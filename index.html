@@ -424,7 +424,7 @@
         }
 
         /* -------------------------------------------------------------
-           PAINEL DE CONFIGURAÇÃO INICIAL (SETUP) COM COMBOBOX
+           PAINEL DE CONFIGURAÇÃO INICIAL (SETUP)
            ------------------------------------------------------------- */
         .form-group {
             display: flex;
@@ -457,95 +457,6 @@
             border-color: var(--primary);
             background-color: #ffffff;
             box-shadow: 0 0 0 4px rgba(0, 90, 163, 0.1);
-        }
-
-        /* Estilização do Combobox Procurável */
-        .combobox-container {
-            position: relative;
-            width: 100%;
-        }
-
-        .combobox-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .combobox-input {
-            width: 100%;
-            padding-right: 40px !important; /* Espaço para a seta */
-        }
-
-        .combobox-arrow {
-            position: absolute;
-            right: 14px;
-            pointer-events: none;
-            color: var(--text-muted);
-            transition: var(--transition);
-            width: 18px;
-            height: 18px;
-        }
-
-        .combobox-container.active .combobox-arrow {
-            transform: rotate(180deg);
-            color: var(--primary);
-        }
-
-        body.dark-mode .combobox-container.active .combobox-arrow {
-            color: var(--accent);
-        }
-
-        .combobox-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%;
-            max-height: 220px;
-            overflow-y: auto;
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            margin-top: 6px;
-            box-shadow: var(--shadow-lg);
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-            animation: fadeIn 0.2s ease;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-
-        .combobox-container.active .combobox-dropdown {
-            display: flex;
-        }
-
-        .combobox-option {
-            padding: 10px 16px;
-            font-size: 0.88rem;
-            color: var(--text-main);
-            cursor: pointer;
-            transition: var(--transition);
-            text-align: left;
-        }
-
-        .combobox-option:hover {
-            background-color: var(--primary-light);
-            color: var(--primary);
-        }
-
-        body.dark-mode .combobox-option:hover {
-            background-color: rgba(0, 90, 163, 0.2);
-            color: var(--accent);
-        }
-
-        .combobox-option.no-results {
-            color: var(--text-muted);
-            font-style: italic;
-            cursor: default;
-        }
-
-        .combobox-option.no-results:hover {
-            background-color: transparent;
-            color: var(--text-muted);
         }
 
         .btn-start {
@@ -1550,18 +1461,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Nome do Curso</label>
-                        <div class="combobox-container" id="combobox-container">
-                            <div class="combobox-wrapper">
-                                <input type="text" id="input-course-name" class="form-input combobox-input" placeholder="Pesquise ou selecione um curso..." onfocus="abrirDropdownCombobox()" oninput="filtrarOpcoesCombobox()" autocomplete="off" required>
-                                <svg class="combobox-arrow" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                </svg>
-                            </div>
-                            <div id="combobox-dropdown" class="combobox-dropdown">
-                                <!-- Opções inseridas dinamicamente pelo JS -->
-                            </div>
-                        </div>
+                        <label class="form-label" for="input-course-name">Nome do Curso</label>
+                        <input type="text" id="input-course-name" class="form-input" placeholder="Digite o nome do curso..." autocomplete="off" required>
                     </div>
 
                     <div class="form-group">
@@ -1923,186 +1824,6 @@
             }
         };
 
-        // Lista oficial de Cursos Disponíveis Ordenados Alfabeticamente
-        const LISTA_CURSOS = [
-            "ACCESS",
-            "ADMINISTRADOR DE BANCO DE DADOS",
-            "ADOBE ILLUSTRATOR",
-            "ADOBE PHOTOSHOP",
-            "ADMINISTRAÇÃO DE SISTEMAS SERVICENOW - CSA",
-            "ANÁLISE DE DADOS EM NUVEM - GOOGLE CLOUD DATA ANALYTICS CERTIFICATE",
-            "ANÁLISE DE VULNERABILIDADES PARA TRATAMENTOS DE RISCOS",
-            "ANÁLISE FORENSE COMPUTACIONAL",
-            "ANALISTA DE SUPORTE DE REDES",
-            "ARTE 3D PARA GAMES",
-            "ASSISTENTE DE SUPORTE TÉCNICO",
-            "AUXILIAR EM REDES DE COMUNICAÇÃO E DADOS",
-            "BANCO DE DADOS PARA DATA SCIENCE",
-            "CCNA V7: ENTERPRISE NETWORKING, SECURITY AND AUTOMATION",
-            "CCNA V7: INTRODUCTION TO NETWORKS",
-            "CCNA V7: SWITCHING, ROUTING AND WIRELESS ESSENTIALS",
-            "CIBERSECURITY EM DATA SCIENCE",
-            "CIBERSEGURANÇA COM SOLUÇÕES FORTINET",
-            "CIBERSEGURANÇA EM SERVIDORES LINUX",
-            "CIBERSEGURANÇA EM SERVIDORES WINDOWS",
-            "CIBERSEGURANÇA NA NUVEM",
-            "COMPETÊNCIA TRANSVERSAL - LÓGICA DE PROGRAMAÇÃO",
-            "CONFIGURAÇÃO DE DISPOSITIVOS DE REDES COM FOCO EM CIBERSEGURANÇA",
-            "CONFIGURAÇÃO DE SERVIÇOS EM NUVEM",
-            "COREL DRAW",
-            "CREO",
-            "CRIAÇÃO DE JOGOS DIGITAIS",
-            "CRIADOR DE APP MICROSOFT POWER PLATAFORM - MICROSOFT PL-100",
-            "CYBEROPS ASSOCIATE",
-            "CYBERSECURITY ESSENTIALS",
-            "DASHBOARD EM EXCEL",
-            "DASHBOARDS COM GOOGLE LOOKER STUDIO",
-            "DATA ANALYTICS E TOMADA DE DECISÃO",
-            "DESENHO 2D DE PERSONAGENS PARA JOGOS DIGITAIS",
-            "DESENVOLVEDOR BACK-END",
-            "DESENVOLVEDOR DE APLICAÇÕES ANDROID",
-            "DESENVOLVEDOR DE APLICAÇÕES PARA IOS",
-            "DESENVOLVEDOR DE JOGOS DIGITAIS",
-            "DESENVOLVEDOR DE RPA MICROSOFT POWER AUTOMATE - MICROSOFT PL-500",
-            "DESENVOLVEDOR DE SOLUÇÕES MULTIPLATAFORMAS COM QT - MOBILE",
-            "DESENVOLVEDOR DE SOLUÇÕES MULTIPLATAFORMAS COM QT PARA DESKTOP",
-            "DESENVOLVEDOR DE SOLUÇÕES MULTIPLATAFORMAS COM QT PARA IOT",
-            "DESENVOLVEDOR FRONT-END",
-            "DESENVOLVENDO CURSOS ONLINE NO MOODLE",
-            "DESENVOLVIMENTO DE API REST COM SPRING BOOT",
-            "DESENVOLVIMENTO DE APLICATIVOS LOW CODE - ORACLE APEX",
-            "DESENVOLVIMENTO DE JOGOS EM UNITY",
-            "DESENVOLVIMENTO DE JOGOS EM UNREAL ENGINE",
-            "DESENVOLVIMENTO DE SOLUÇÕES EM INTELIGÊNCIA ARTIFICIAL - MICROSOFT AI-102",
-            "DESENVOLVIMENTO EM JAVASCRIPT",
-            "DESENVOLVIMENTO WEB COM SPRING MVC",
-            "DESIGN DE JOGOS DIGITAIS",
-            "DESIGN UX E UI",
-            "DESIGNER DE INTERFACE WEB",
-            "DESVENDANDO A BLOCKCHAIN",
-            "DREAMWEAVER COM ACESSO A BANCO DE DADOS",
-            "E-COMMERCE - CONSTRUÇÃO E OPERACIONALIZAÇÃO",
-            "ÉTICA NA INTELIGÊNCIA ARTIFICIAL",
-            "EXCEL AVANÇADO",
-            "EXCEL BÁSICO",
-            "EXCEL COMPLETO",
-            "FERRAMENTAS DE GESTÃO DE PROJETOS DE SOFTWARE",
-            "FERRAMENTAS TECNOLÓGICAS PARA RECRUTAMENTO E SELEÇÃO",
-            "FLUÊNCIA - FUNDAMENTOS DA INTELIGÊNCIA ARTIFICIAL",
-            "FORMAÇÃO DE TUTORES PARA CURSOS ON-LINE",
-            "FUNDAMENTOS DA AUTOMAÇÃO DE PROCESSOS INDUSTRIAIS",
-            "FUNDAMENTOS DE CIÊNCIA DE DADOS - GOOGLE CLOUD",
-            "FUNDAMENTOS DE INTELIGÊNCIA ARTIFICIAL GENERATIVA - GOOGLE CLOUD",
-            "FUNDAMENTOS DE PROGRAMAÇÃO EM PYTHON",
-            "FUNDAMENTOS DE SEGURANÇA EM NUVEM - MICROSOFT - SC-900",
-            "FUNDAMENTOS DO PYTHON 1",
-            "FUNDAMENTOS EM SOLUÇÕES DE PRODUTIVIDADE E COLABORAÇÃO - MICROSOFT MS-900",
-            "GERENCIAMENTO DE PROJETOS ÁGEIS",
-            "HARDWARE AVANÇADO",
-            "ILLUSTRATOR",
-            "IMPLANTAÇÃO DE REDE WIRELESS",
-            "IMPLANTAÇÃO DE SERVIÇOS DE CIBERSEGURANÇA EM NUVEM - GOOGLE CLOUD CYBERSECURITY CERTIFICATE",
-            "IMPLANTAÇÃO DE SERVIÇOS DE INTELIGÊNCIA ARTIFICIAL EM NUVEM - GOOGLE CLOUD AI FOUNDATIONS",
-            "IMPLANTAÇÃO DE SERVIÇOS DE INTELIGÊNCIA ARTIFICIAL EM NUVEM - MICROSOFT AI-900",
-            "IMPLANTAÇÃO DE SERVIÇOS DE INTELIGÊNCIA ARTIFICIAL GENERATIVA EM NUVEM - GOOGLE CLOUD",
-            "IMPLANTAÇÃO DE SERVIÇOS EM NUVEM - AWS CLOUD PRACTITIONER FOUNDATIONAL",
-            "IMPLANTAÇÃO DE SERVIÇOS EM NUVEM - GOOGLE CLOUD ENGINEER",
-            "IMPLANTAÇÃO DE SERVIÇOS EM NUVEM - GOOGLE CLOUD FOUNDATIONS",
-            "IMPLANTAÇÃO DE SERVIÇOS EM NUVEM - MICROSOFT AZ-900",
-            "IMPLANTAÇÃO DE SERVIÇOS EM NUVEM AWS - ARQUITETO DE SOLUÇÕES ASSOCIATE",
-            "IMPLANTAÇÃO E ANÁLISE DE DADOS EM NUVEM - MICROSOFT DP-900",
-            "IMPLEMENTAÇÃO EM BIG DATA",
-            "INSTALAÇÃO DE REDES ÓPTICAS",
-            "INSTALADOR E REPARADOR DE REDES DE COMPUTADORES",
-            "INTEGRADOR DE SOLUÇÕES EM NUVEM",
-            "INTELIGÊNCIAS ARTIFICIAIS GENERATIVAS APLICADA A PROGRAMAÇÃO - CHATGPT",
-            "INTERFACES WEB COM BOOTSTRAP",
-            "JOOMLA HABILITAÇÃO TÉCNICA",
-            "LÓGICA DE PROGRAMAÇÃO COM ARDUÍNO",
-            "LPIC 1 - SISTEMAS OPERACIONAIS LINUX: INSTALAÇÃO E CONFIGURAÇÃO",
-            "LPIC 2 - SISTEMAS OPERACIONAIS LINUX: ADMINISTRAÇÃO DE SISTEMAS",
-            "MANTENEDOR ASSISTENTE DE MICROCOMPUTADORES",
-            "MANUTENÇÃO DE NOTEBOOKS",
-            "MARKETING DIGITAL COM INTELIGÊNCIA ARTIFICIAL",
-            "MECANISMOS DE DEFESA - FIREWALL",
-            "MECANISMOS DE DEFESA - GERENCIAMENTO COM SIEM",
-            "MECANISMOS DE DEFESA - IDS E IPS",
-            "METAVERSO APLICADO A NEGÓCIOS",
-            "MICROSOFT OFFICE EXCEL",
-            "MICROSOFT OFFICE POWER POINT",
-            "MICROSOFT OFFICE POWERPOINT",
-            "MICROSOFT OFFICE SPECIALIST ASSOCIATE",
-            "MICROSOFT OFFICE WORD",
-            "MICROSOFT POWER BI",
-            "MICROSOFT POWER PLATFORM FUNDAMENTALS - PL-900",
-            "MODELAGEM 3D PARA JOGOS COM MAYA",
-            "MODELAGEM DE EQUIPAMENTOS E TUBULAÇÕES NO SISTEMA AVEVA VANTAGE PDMS",
-            "MODELAGEM EM DATA WAREHOUSE",
-            "MODELAMENTO ORGÂNICO PARA IMPRESSÃO 3D",
-            "MONTAGEM E MANUTENÇÃO DE MICROCOMPUTADORES",
-            "MS PROJECT",
-            "NOC - NETWORK OPERATIONS CENTER",
-            "OPERADOR DE COMPUTADOR",
-            "OPERADOR DE MICROCOMPUTADOR",
-            "OPERADOR DE SUPORTE TÉCNICO EM TECNOLOGIA DA INFORMAÇÃO",
-            "PACOTE OFFICE",
-            "PHOTOSHOP",
-            "PHOTOSHOP AVANÇADO",
-            "PINTURA DIGITAL COM PHOTOSHOP",
-            "PLANEJAMENTO E DIMENSIONAMENTO DE REDES DE COMPUTADORES",
-            "POR DENTRO DA COMPUTAÇÃO QUÂNTICA",
-            "POR DENTRO DA SEGURANÇA CIBERNÉTICA",
-            "POWERPOINT",
-            "PREVENÇÃO E REAÇÃO AOS INCIDENTES CIBERNÉTICOS",
-            "PRINCÍPIOS DE SEGURANÇA DA INFORMAÇÃO - CIBERSEGURANÇA",
-            "PROGRAMAÇÃO C ++",
-            "PROGRAMAÇÃO DE BANCO DE DADOS",
-            "PROGRAMAÇÃO DE INTERNET",
-            "PROGRAMAÇÃO EM C#",
-            "PROGRAMAÇÃO EM C++",
-            "PROGRAMAÇÃO EM INTELIGÊNCIA ARTIFICIAL GENERATIVA",
-            "PROGRAMAÇÃO EM LINGUAGEM PHP",
-            "PROGRAMAÇÃO EM PYTHON",
-            "PROGRAMAÇÃO EM PYTHON COM FRAMEWORK",
-            "PROGRAMAÇÃO EM PYTHON NO RASPBERRY",
-            "PROGRAMAÇÃO EM PYTHON PARA CIBERSEGURANÇA",
-            "PROGRAMAÇÃO EM PYTHON PARA DATA SCIENCE",
-            "PROGRAMAÇÃO EM R PARA DATA SCIENCE",
-            "PROGRAMAÇÃO JAVA",
-            "PROGRAMAÇÃO ORACLE - JAVA FOUNDATIONS",
-            "PROGRAMAÇÃO ORACLE - JAVA FUNDAMENTALS",
-            "PROGRAMAÇÃO ORACLE - JAVA INTELIGÊNCIA ARTIFICIAL COM MACHINE LEARNING",
-            "PROGRAMAÇÃO ORACLE - JAVA PROGRAMMING",
-            "PROGRAMADOR BACK-END",
-            "PROGRAMADOR DE SOFTWARE",
-            "PROGRAMADOR FRONT-END",
-            "PROGRAMADOR FULL STACK",
-            "REALIDADE AUMENTADA",
-            "REALIDADE VIRTUAL",
-            "REDES DE COMPUTADORES - IMPLANTAÇÃO DE REDES LOCAIS",
-            "REDES DE COMPUTADORES - INFRAESTRUTURAS LOCAIS E CLOUD",
-            "REGULAMENTAÇÃO DA LGPD E ATUAÇÃO DA ANPD",
-            "REQUISITOS E MODELAGEM DE SOFTWARE",
-            "RHINOCEROS APLICADO AO DESENVOLVIMENTO DE PRODUTOS",
-            "SEGURANÇA  CIBERNÉTICA - TÉCNICAS DE PENTEST",
-            "SERVIÇOS IIOT EM NUVEM PARA IMPLEMENTAÇÃO DE SOLUÇÕES INDUSTRIAIS",
-            "SOC - CENTRO DE OPERAÇÕES DE SEGURANÇA",
-            "SOLUÇÕES INTEGRADAS COM IOT",
-            "TABLEAU PARA ANÁLISE DE DADOS",
-            "TÉCNICAS DE INSTALAÇÃO E CONFIGURAÇÃO DE SOFTWARE",
-            "TÉCNICO EM CIBERSEGURANÇA",
-            "TÉCNICO EM DESENVOLVIMENTO DE SISTEMAS",
-            "TÉCNICO EM PROGRAMAÇÃO DE JOGOS DIGITAIS",
-            "TÉCNICO EM REDES DE COMPUTADORES",
-            "TECNOLOGIA DA INFORMAÇÃO PARA PROCESSOS ADMINISTRATIVOS",
-            "TOP SOLID",
-            "TRANSFORMAÇÃO DIGITAL COM GOOGLE CLOUD - CLOUD DIGITAL LEADER",
-            "VBA PARA EXCEL",
-            "WEB 3.0",
-            "WEB DESIGNER - FRONT-END",
-            "WORD"
-        ];
-
         // Estado da aplicação
         let currentCourseName = "";
         let currentCourseType = "";
@@ -2116,86 +1837,9 @@
         // Inicialização na carga da página
         document.addEventListener("DOMContentLoaded", () => {
             inicializarTema();
-            inicializarCombobox();
             carregarHistorico();
             voltarParaSetup();
         });
-
-        // -------------------------------------------------------------
-        // INICIALIZAÇÃO E CONTROLE DO COMBOBOX (SELECT PROCURÁVEL)
-        // -------------------------------------------------------------
-        function inicializarCombobox() {
-            const dropdown = document.getElementById("combobox-dropdown");
-            dropdown.innerHTML = "";
-            
-            LISTA_CURSOS.forEach(curso => {
-                const opt = document.createElement("div");
-                opt.className = "combobox-option";
-                opt.innerText = curso;
-                opt.onclick = () => selecionarCursoCombobox(curso);
-                dropdown.appendChild(opt);
-            });
-
-            // Fecha dropdown ao clicar fora
-            document.addEventListener("click", (e) => {
-                const container = document.getElementById("combobox-container");
-                if (container && !container.contains(e.target)) {
-                    fecharDropdownCombobox();
-                }
-            });
-        }
-
-        // Abre a lista suspensa e reaplica filtro
-        function abrirDropdownCombobox() {
-            document.getElementById("combobox-container").classList.add("active");
-            filtrarOpcoesCombobox();
-        }
-
-        // Fecha a lista suspensa
-        function fecharDropdownCombobox() {
-            document.getElementById("combobox-container").classList.remove("active");
-        }
-
-        // Seleciona um item clicado no dropdown
-        function selecionarCursoCombobox(curso) {
-            document.getElementById("input-course-name").value = curso;
-            currentCourseName = curso;
-            fecharDropdownCombobox();
-        }
-
-        // Filtra opções com base na busca
-        function filtrarOpcoesCombobox() {
-            const val = document.getElementById("input-course-name").value.toLowerCase().trim();
-            const options = document.querySelectorAll(".combobox-option");
-            let count = 0;
-
-            options.forEach(opt => {
-                if (opt.classList.contains("no-results")) {
-                    opt.remove();
-                    return;
-                }
-                
-                const txt = opt.innerText.toLowerCase();
-                if (txt.includes(val)) {
-                    opt.style.display = "block";
-                    count++;
-                } else {
-                    opt.style.display = "none";
-                }
-            });
-
-            const dropdown = document.getElementById("combobox-dropdown");
-            // Remove mensagens antigas de erro
-            const oldMsg = dropdown.querySelector(".no-results");
-            if (oldMsg) oldMsg.remove();
-
-            if (count === 0) {
-                const noRes = document.createElement("div");
-                noRes.className = "combobox-option no-results";
-                noRes.innerText = "Nenhum curso correspondente encontrado";
-                dropdown.appendChild(noRes);
-            }
-        }
 
         // -------------------------------------------------------------
         // TEMA (CLARO/ESCURO)
@@ -2239,20 +1883,11 @@
         // Transição do Setup para o Quiz
         function iniciarAvaliacao() {
             const nameInput = document.getElementById("input-course-name");
-            currentCourseName = nameInput.value.trim();
+            currentCourseName = nameInput.value.trim().toUpperCase(); // Salva sempre em caixa alta para padronizar
             currentCourseType = document.getElementById("select-course-type").value;
 
             if (!currentCourseName) {
-                alert("Por favor, selecione um curso da lista para iniciar a avaliação.");
-                abrirDropdownCombobox();
-                nameInput.focus();
-                return;
-            }
-
-            // Validação estrita contra a lista oficial de cursos
-            if (!LISTA_CURSOS.includes(currentCourseName)) {
-                alert("Curso inválido! Por favor, selecione uma das opções recomendadas no menu.");
-                abrirDropdownCombobox();
+                alert("Por favor, digite o nome do curso para iniciar a avaliação.");
                 nameInput.focus();
                 return;
             }
@@ -2678,6 +2313,7 @@
             fecharModalJustificativa();
         }
 
+        // Fechar modal se clicou fora
         function fecharModalSeClicouFora(event) {
             const overlay = document.getElementById("modal-justification-overlay");
             if (event.target === overlay) {
