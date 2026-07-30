@@ -702,6 +702,29 @@ textarea {
   font-size: 8px;
   line-height: 1.5;
 }
+.offer-verification-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 11px;
+  padding: 9px 11px;
+  border: 1px solid #d3a9ab;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--blue);
+  font-size: 9px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.offer-verification-link:hover {
+  border-color: var(--blue);
+  background: #faf0f0;
+}
+.suggestion-title .offer-verification-link {
+  flex: 0 0 auto;
+  margin: 0 0 0 auto;
+  padding: 7px 9px;
+  border-radius: 6px;
+}
 .suggestion {
   display: none;
   background: #fafafa;

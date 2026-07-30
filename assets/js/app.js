@@ -179,6 +179,10 @@ function suggestionFor(step){
     const unitStatus=units>1?"Mais de uma escola":units===1?"Uma escola identificada":"Sem oferta identificada";
     return {
       title:"Unidades ofertantes identificadas",
+      action:units<=1?`
+        <a class="offer-verification-link" href="${senaiOffersUrl(selectedCourse.name)}" target="_blank" rel="noopener noreferrer">
+          Pesquisar ofertas ↗
+        </a>`:"",
       body:`
         <div class="evidence-row">
           <span class="evidence-year">TOTAL</span>
@@ -192,8 +196,8 @@ function suggestionFor(step){
       conclusion:units>1
         ?"A base indica oferta por mais de uma unidade. Confirme se os registros correspondem ao mesmo título e período analisado."
         :units===1
-          ?`A base identifica oferta pela unidade ${formatUnitCode(unitCodes[0])}. Portanto, existe oferta, mas não por mais de uma escola.`
-          :"A base não identifica escola ofertante para este código. Verifique se existem ofertas sem matrícula registrada."
+          ?`A base identifica oferta pela unidade ${formatUnitCode(unitCodes[0])}. Antes de responder, confira no portal SENAI se existem outras ofertas atuais para o mesmo título.`
+          :"A base não identifica escola ofertante para este código. Consulte o portal SENAI para verificar ofertas sem matrícula registrada."
     };
   }
   if(step===7&&selectedCourse.criterion==="fic"){
@@ -246,7 +250,7 @@ function renderQuestion(){
   $("question-observation-text").value=asksForObservation?(questionObservations[currentQuestion]||""):"";
   const suggestion=suggestionFor(currentQuestion);
   $("data-suggestion").innerHTML=suggestion
-    ?`<div class="suggestion-title"><span>▦</span><strong>${suggestion.title}</strong></div>${suggestion.body}<p>${suggestion.conclusion}</p>`
+    ?`<div class="suggestion-title"><span>▦</span><strong>${suggestion.title}</strong>${suggestion.action||""}</div>${suggestion.body}<p>${suggestion.conclusion}</p>`
     :"";
   $("data-suggestion").classList.toggle("visible",!!suggestion);
   const recommended=recommendedAnswer(currentQuestion);
