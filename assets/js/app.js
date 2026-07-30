@@ -35,7 +35,7 @@ const CRITERIA = {
   }
 };
 
-let selectedCourse=null,currentQuestion=1,answers=[],finalResult="";
+let selectedCourse=null,currentQuestion=1,answers=[],finalResult="",questionObservations={};
 let existingAnalysis=null;
 let history=[];
 let contactQueue=[];
@@ -71,6 +71,7 @@ function mapRemoteEvaluation(row){
     units:state.units||[],
     currentQuestion:row.current_question,
     answers:state.answers||[],
+    questionObservations:state.questionObservations||{},
     savedAt:row.updated_at,
     createdBy:row.created_by
   };
@@ -133,7 +134,7 @@ function selectCourse(code){
   showView("validate-view",2);
 }
 function startEvaluation(){
-  currentQuestion=1;answers=[];finalResult="";
+  currentQuestion=1;answers=[];finalResult="";questionObservations={};
   $("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";
   $("mini-code").textContent=selectedCourse.code;$("mini-name").textContent=selectedCourse.name;$("mini-criterion").textContent=CRITERIA[selectedCourse.criterion].label;
   showView("quiz-view",3);renderQuestion();
@@ -231,6 +232,9 @@ function renderQuestion(){
   $("quiz-counter").textContent=`Pergunta ${answers.length+1}`;
   $("progress-bar").style.width=`${Math.min(92,(answers.length+1)/(selectedCourse.criterion==="fic"?7:14)*100)}%`;
   $("question-text").textContent=q.text;
+  const asksAboutTechnology=normalize(q.text).includes("alguma tecnologia");
+  $("question-observation").classList.toggle("visible",asksAboutTechnology);
+  $("question-observation-text").value=asksAboutTechnology?(questionObservations[currentQuestion]||""):"";
   const suggestion=suggestionFor(currentQuestion);
   $("data-suggestion").innerHTML=suggestion
     ?`<div class="suggestion-title"><span>▦</span><strong>${suggestion.title}</strong></div>${suggestion.body}<p>${suggestion.conclusion}</p>`
@@ -253,7 +257,11 @@ function renderQuestion(){
 }
 function answer(value){
   const q=CRITERIA[selectedCourse.criterion].questions[currentQuestion];
-  answers.push({step:currentQuestion,answer:value,text:q.text});
+  const observation=normalize(q.text).includes("alguma tecnologia")
+    ?$("question-observation-text").value.trim()
+    :"";
+  if(observation)questionObservations[currentQuestion]=observation;
+  answers.push({step:currentQuestion,answer:value,text:q.text,observation});
   if(currentQuestion===5){
     const contact=contactQueue.find(item=>(item.course_code||item.code)===selectedCourse.code&&item.status!=="concluido");
     if(contact){
@@ -281,11 +289,14 @@ function showResult(){
   $("result-title").style.color=resultClass.includes("fechar")?"var(--red)":resultClass.includes("reestruturar")?"var(--amber)":"var(--green)";
   $("result-subtitle").textContent="A recomendação foi produzida pelo caminho oficial e permanece editável antes do registro.";
   $("result-course").textContent=selectedCourse.name;$("result-criterion").textContent=CRITERIA[selectedCourse.criterion].short;$("result-count").textContent=answers.length;
-  $("justification").value=answers.map(a=>`${a.answer?"SIM":"NÃO"} — ${a.text}`).join("\n")+"\n\nDECISÃO: "+formatDecisionResult(finalResult)+".";
+  $("justification").value=answers.map(a=>
+    `${a.answer?"SIM":"NÃO"} — ${a.text}${a.observation?`\nObservações: ${a.observation}`:""}`
+  ).join("\n")+"\n\nDECISÃO: "+formatDecisionResult(finalResult)+".";
   $("save-result").disabled=false;
+  $("save-result").textContent="Concluir e salvar";
   showView("result-view",4);
 }
-function reset(){selectedCourse=null;currentQuestion=1;answers=[];finalResult="";$("course-search").value="";searchCourses();showView("search-view",1)}
+function reset(){selectedCourse=null;currentQuestion=1;answers=[];finalResult="";questionObservations={};$("course-search").value="";searchCourses();showView("search-view",1)}
 async function saveResult(){
   if(isPreviewMode){toast("Modo de demonstração: a análise não será gravada.");return}
   const {data:completed,error:completedError}=await supabaseClient.from("evaluations").select("*")
@@ -341,7 +352,10 @@ async function saveResult(){
       const rows=answers.map(item=>({
         evaluation_id:saved.id,question_step:item.step,question_text:item.text,answer:item.answer,
         source:item.step===5?"unidade":"usuario",answered_by:appSession.user.id,
-        evidence:item.step<=3?{enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[]}:{}
+        evidence:{
+          ...(item.step<=3?{enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[]}:{}),
+          ...(item.observation?{observation:item.observation}:{})
+        }
       }));
       const {error}=await supabaseClient.from("evaluation_answers").upsert(rows,{onConflict:"evaluation_id,question_step"});
       if(error)throw error;
@@ -351,6 +365,7 @@ async function saveResult(){
     renderHistory();renderDrafts();
     $("save-result").disabled=true;
     reset();
+    $("course-search").focus();
     toast("Análise salva no banco compartilhado. Você já pode escolher outro curso.");
   }catch(error){if(!handleSupabaseError(error))toast("Não foi possível salvar no Supabase. Tente novamente.")}
 }
@@ -403,7 +418,7 @@ function openHistory(id){
   $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>`
     <div class="process-step">
       <span>${step.step||index+1}</span>
-      <div><strong>${escapeHtml(step.text)}</strong>${step.answer===null||step.answer===undefined?"":`<small class="${step.answer?"yes":"no"}">${step.answer?"SIM":"NÃO"}</small>`}</div>
+      <div><strong>${escapeHtml(step.text)}</strong>${step.answer===null||step.answer===undefined?"":`<small class="${step.answer?"yes":"no"}">${step.answer?"SIM":"NÃO"}</small>`}${step.observation?`<p class="process-observation"><b>Observações:</b> ${escapeHtml(step.observation)}</p>`:""}</div>
     </div>`).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
   $("history-justification").innerHTML=`
     <div><span class="section-kicker">JUSTIFICATIVA CONSOLIDADA</span><p>${escapeHtml(item.justification||"Não informada").replace(/\n/g,"<br>")}</p></div>
@@ -425,14 +440,15 @@ async function saveDraft(){
     criterionKey:selectedCourse.criterion,
     currentQuestion,
     answers:answers.map(a=>({...a})),
-    savedAt:new Date().toISOString()
+    savedAt:new Date().toISOString(),
+    questionObservations:{...questionObservations}
   };
   const existing=evaluationDrafts.find(item=>item.code===draft.code);
   const payload={
     course_code:selectedCourse.code,course_name:selectedCourse.name,criterion_key:selectedCourse.criterion,
     criterion_label:CRITERIA[selectedCourse.criterion].short,status:"rascunho",current_question:currentQuestion,
     final_result:null,justification:null,created_by:appSession.user.id,
-    state:{answers:draft.answers,enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[]}
+    state:{answers:draft.answers,questionObservations:draft.questionObservations,enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[]}
   };
   try{
     let saved;
@@ -472,7 +488,7 @@ function renderDrafts(){
 function resumeDraft(code){
   const draft=evaluationDrafts.find(item=>item.code===code),course=COURSES.find(item=>item.code===code);
   if(!draft||!course)return;
-  selectedCourse=course;currentQuestion=draft.currentQuestion;answers=draft.answers||[];finalResult=draft.finalResult||"";
+  selectedCourse=course;currentQuestion=draft.currentQuestion;answers=draft.answers||[];finalResult=draft.finalResult||"";questionObservations=draft.questionObservations||{};
   $("mini-code").textContent=course.code;$("mini-name").textContent=course.name;$("mini-criterion").textContent=CRITERIA[course.criterion].label;
   $("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";
   if(finalResult){showResult();toast("Retorno da unidade aplicado. Confira o veredito.");}
@@ -535,6 +551,9 @@ $("clear-search").onclick=()=>{$("course-search").value="";searchCourses();$("co
 document.querySelectorAll(".back-search").forEach(b=>b.onclick=reset);
 $("start-evaluation").onclick=startEvaluation;
 $("save-progress").onclick=saveDraft;
+$("question-observation-text").oninput=event=>{
+  questionObservations[currentQuestion]=event.target.value;
+};
 document.querySelectorAll(".decision").forEach(b=>b.onclick=()=>answer(b.dataset.answer==="yes"));
 $("quiz-back").onclick=backQuestion;$("restart").onclick=reset;$("save-result").onclick=saveResult;
 $("history-search").oninput=renderHistory;$("export-csv").onclick=exportCsv;
