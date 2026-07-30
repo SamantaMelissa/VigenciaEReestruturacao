@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#c1272c">
+  <title>Central de Validações | SENAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="brand-mark">S</span><span><strong>Radar de Cursos</strong><small>Decisão orientada por evidências</small></span></a>
+      <div class="top-actions"><a class="contact-nav manager-only" href="gestao.html">Painel gestor</a><a class="back-evaluation" href="index.html">← Voltar para avaliações</a></div>
+    </header>
+    <main class="contacts-page">
+      <section class="contacts-hero">
+        <div><span class="eyebrow">ACOMPANHAMENTO GERENCIAL</span><h1>Central de Validações<br><em>com as Unidades</em></h1><p>Acompanhe os cursos que dependem de confirmação ou justificativa técnica das escolas.</p></div>
+        <div class="contacts-help"><strong>Como usar</strong><span>1. Abra uma pendência</span><span>2. Registre o contato</span><span>3. Atualize o status</span></div>
+      </section>
+      <section class="contact-center standalone" id="contact-center">
+        <div class="history-head">
+          <div><span class="section-kicker">VISÃO GERAL</span><h2>Pendências de validação</h2><p class="section-description">Clique em um curso para consultar as evidências e registrar o retorno.</p></div>
+          <div class="contact-summary">
+            <div><strong id="contact-open">0</strong><span>Pendentes</span></div>
+            <div><strong id="contact-progress">0</strong><span>Em contato</span></div>
+            <div><strong id="contact-done">0</strong><span>Concluídos</span></div>
+          </div>
+        </div>
+        <div class="contact-toolbar"><input id="contact-search" placeholder="Buscar curso, código ou unidade"><select id="contact-filter"><option value="todos">Todos os status</option><option value="pendente">Pendentes</option><option value="em_contato">Em contato</option><option value="concluido">Concluídos</option></select></div>
+        <div class="contact-list" id="contact-list"></div>
+      </section>
+    </main>
+    <footer><span>SENAI · Fábrica de Cursos</span><span>Central de acompanhamento das unidades</span></footer>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div class="contact-modal" id="contact-modal" aria-hidden="true">
+    <div class="contact-modal-card">
+      <div class="contact-modal-head"><div><span class="section-kicker">DOSSIÊ DE VALIDAÇÃO</span><h2 id="contact-modal-title"></h2><p id="contact-modal-code"></p></div><button id="contact-modal-close" aria-label="Fechar">×</button></div>
+      <div class="contact-modal-body">
+        <div class="contact-evidence" id="contact-evidence"></div>
+        <div class="contact-form">
+          <label>Status do contato<select id="contact-status"><option value="pendente">Pendente</option><option value="em_contato">Em contato</option><option value="concluido">Concluído</option></select></label>
+          <label>Responsável<input id="contact-owner" placeholder="Nome do responsável"></label>
+          <label>Unidade contatada<input id="contact-unit" placeholder="Ex.: 1.25"></label>
+          <label>Data do contato<input id="contact-date" type="date"></label>
+          <label class="full">Registro do contato<textarea id="contact-notes" rows="5" placeholder="Registre quem foi contatado, retorno recebido e próximos passos..."></textarea></label>
+          <label class="full contact-answer">A escola apresentou justificativa técnica?<select id="contact-answer"><option value="">Aguardando resposta</option><option value="sim">Sim</option><option value="nao">Não</option></select></label>
+        </div>
+      </div>
+      <div class="contact-modal-actions"><button class="btn secondary" id="contact-delete">Excluir pendência</button><button class="btn secondary" id="contact-save">Salvar acompanhamento</button><button class="btn primary contact-return" id="contact-return" disabled>Salvar e retornar à análise →</button></div>
+    </div>
+  </div>
+  <script src="assets/data/courses-data.js"></script>
+  <script src="assets/js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase-service.js"></script>
+  <script src="assets/js/contacts.js"></script>
+</body>
+</html>

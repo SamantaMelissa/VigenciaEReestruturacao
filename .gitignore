@@ -1,0 +1,13 @@
+# Arquivos-base usados apenas para geração e conferência local.
+# O courses-data.js gerado continua versionado e publicado no site.
+Dados/*
+!Dados/README.md
+
+# Configurações e dependências locais
+.env
+.env.*
+node_modules/
+__pycache__/
+*.pyc
+.browser-profile/
+outputs/
