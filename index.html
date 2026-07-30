@@ -104,7 +104,10 @@
             <div class="progress"><i id="progress-bar"></i></div>
             <div class="mini-course">
               <span id="mini-code"></span><strong id="mini-name"></strong><small id="mini-criterion"></small>
-              <a class="course-plan-link" href="https://sge790.com.br/Redirect/PlanoCruso" target="_blank" rel="noopener noreferrer">Plano de curso ↗</a>
+              <div class="mini-course-links">
+                <a class="course-plan-link" href="https://sge790.com.br/Redirect/PlanoCruso" target="_blank" rel="noopener noreferrer">Plano de curso ↗</a>
+                <a class="course-plan-link" id="course-offers-link" href="https://www.sp.senai.br/cursos/0/0" target="_blank" rel="noopener noreferrer">Pesquisar ofertas no SENAI ↗</a>
+              </div>
             </div>
             <div class="question-card">
               <span class="section-kicker" id="question-context">CRITÉRIO OFICIAL</span>
@@ -137,6 +140,7 @@
             <textarea id="justification" rows="7"></textarea>
             <div class="panel-actions">
               <button class="btn secondary" id="restart">Nova análise</button>
+              <button class="btn secondary" id="result-back">← Voltar à última pergunta</button>
               <button class="btn primary" id="save-result">Concluir e salvar</button>
             </div>
           </div>

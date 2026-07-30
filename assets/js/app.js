@@ -43,6 +43,11 @@ let evaluationDrafts=[];
 const $=id=>document.getElementById(id);
 const normalize=text=>(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const escapeHtml=text=>String(text??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const needsQuestionObservation=text=>{
+  const value=normalize(text);
+  return value.includes("alguma tecnologia")||value.includes("justificativa tecnica");
+};
+const senaiOffersUrl=courseName=>`https://www.sp.senai.br/cursos/0/0?pesquisa=${encodeURIComponent(String(courseName||"").toLocaleLowerCase("pt-BR"))}`;
 const formatDecisionResult=text=>{
   const value=String(text||"").trim().toLocaleLowerCase("pt-BR");
   return value?value.charAt(0).toLocaleUpperCase("pt-BR")+value.slice(1):"";
@@ -137,6 +142,7 @@ function startEvaluation(){
   currentQuestion=1;answers=[];finalResult="";questionObservations={};
   $("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";
   $("mini-code").textContent=selectedCourse.code;$("mini-name").textContent=selectedCourse.name;$("mini-criterion").textContent=CRITERIA[selectedCourse.criterion].label;
+  $("course-offers-link").href=senaiOffersUrl(selectedCourse.name);
   showView("quiz-view",3);renderQuestion();
 }
 function suggestionFor(step){
@@ -232,9 +238,12 @@ function renderQuestion(){
   $("quiz-counter").textContent=`Pergunta ${answers.length+1}`;
   $("progress-bar").style.width=`${Math.min(92,(answers.length+1)/(selectedCourse.criterion==="fic"?7:14)*100)}%`;
   $("question-text").textContent=q.text;
-  const asksAboutTechnology=normalize(q.text).includes("alguma tecnologia");
-  $("question-observation").classList.toggle("visible",asksAboutTechnology);
-  $("question-observation-text").value=asksAboutTechnology?(questionObservations[currentQuestion]||""):"";
+  const asksForObservation=needsQuestionObservation(q.text);
+  $("question-observation").classList.toggle("visible",asksForObservation);
+  $("question-observation-text").placeholder=normalize(q.text).includes("justificativa tecnica")
+    ?"Registre a justificativa técnica apresentada pela escola..."
+    :"Registre quais tecnologias precisam ser incluídas ou retiradas...";
+  $("question-observation-text").value=asksForObservation?(questionObservations[currentQuestion]||""):"";
   const suggestion=suggestionFor(currentQuestion);
   $("data-suggestion").innerHTML=suggestion
     ?`<div class="suggestion-title"><span>▦</span><strong>${suggestion.title}</strong></div>${suggestion.body}<p>${suggestion.conclusion}</p>`
@@ -257,7 +266,7 @@ function renderQuestion(){
 }
 function answer(value){
   const q=CRITERIA[selectedCourse.criterion].questions[currentQuestion];
-  const observation=normalize(q.text).includes("alguma tecnologia")
+  const observation=needsQuestionObservation(q.text)
     ?$("question-observation-text").value.trim()
     :"";
   if(observation)questionObservations[currentQuestion]=observation;
@@ -283,6 +292,15 @@ function answer(value){
   renderQuestion();
 }
 function backQuestion(){if(!answers.length)return;currentQuestion=answers.pop().step;$("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";renderQuestion()}
+function returnToLastQuestion(){
+  if(!answers.length)return;
+  currentQuestion=answers.pop().step;
+  finalResult="";
+  $("save-progress").classList.remove("saved");
+  $("save-progress").textContent="← Salvar e voltar";
+  showView("quiz-view",3);
+  renderQuestion();
+}
 function showResult(){
   const resultClass=normalize(finalResult);
   $("result-title").textContent=formatDecisionResult(finalResult);
@@ -490,6 +508,7 @@ function resumeDraft(code){
   if(!draft||!course)return;
   selectedCourse=course;currentQuestion=draft.currentQuestion;answers=draft.answers||[];finalResult=draft.finalResult||"";questionObservations=draft.questionObservations||{};
   $("mini-code").textContent=course.code;$("mini-name").textContent=course.name;$("mini-criterion").textContent=CRITERIA[course.criterion].label;
+  $("course-offers-link").href=senaiOffersUrl(course.name);
   $("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";
   if(finalResult){showResult();toast("Retorno da unidade aplicado. Confira o veredito.");}
   else{showView("quiz-view",3);renderQuestion();toast("Retorno da unidade aplicado. Continue a análise.");}
@@ -555,7 +574,7 @@ $("question-observation-text").oninput=event=>{
   questionObservations[currentQuestion]=event.target.value;
 };
 document.querySelectorAll(".decision").forEach(b=>b.onclick=()=>answer(b.dataset.answer==="yes"));
-$("quiz-back").onclick=backQuestion;$("restart").onclick=reset;$("save-result").onclick=saveResult;
+$("quiz-back").onclick=backQuestion;$("restart").onclick=reset;$("result-back").onclick=returnToLastQuestion;$("save-result").onclick=saveResult;
 $("history-search").oninput=renderHistory;$("export-csv").onclick=exportCsv;
 $("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;
 $("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
