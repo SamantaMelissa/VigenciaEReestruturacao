@@ -40,6 +40,8 @@ let existingAnalysis=null;
 let history=[];
 let contactQueue=[];
 let evaluationDrafts=[];
+let savingResult=false;
+let savingDraft=false;
 const $=id=>document.getElementById(id);
 const normalize=text=>(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const escapeHtml=text=>String(text??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -320,6 +322,12 @@ function showResult(){
 }
 function reset(){selectedCourse=null;currentQuestion=1;answers=[];finalResult="";questionObservations={};$("course-search").value="";searchCourses();showView("search-view",1)}
 async function saveResult(){
+  if(savingResult)return;
+  savingResult=true;
+  $("save-result").disabled=true;
+  const saveResultLabel=$("save-result").textContent;
+  $("save-result").textContent="Salvando...";
+  try{
   if(isPreviewMode){toast("Modo de demonstração: a análise não será gravada.");return}
   const {data:completed,error:completedError}=await supabaseClient.from("evaluations").select("*")
     .eq("course_code",selectedCourse.code).eq("status","concluida").order("updated_at",{ascending:false}).limit(1).maybeSingle();
@@ -390,6 +398,13 @@ async function saveResult(){
     $("course-search").focus();
     toast("Análise salva no banco compartilhado. Você já pode escolher outro curso.");
   }catch(error){if(!handleSupabaseError(error))toast("Não foi possível salvar no Supabase. Tente novamente.")}
+  }finally{
+    savingResult=false;
+    if(selectedCourse){
+      $("save-result").disabled=false;
+      $("save-result").textContent=saveResultLabel;
+    }
+  }
 }
 function renderHistory(){
   const q=normalize($("history-search").value),items=history.filter(h=>normalize(`${h.name} ${h.code} ${h.result}`).includes(q));
@@ -455,6 +470,12 @@ function exportCsv(){
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download=`decisoes-cursos-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(a.href);
 }
 async function saveDraft(){
+  if(savingDraft)return;
+  savingDraft=true;
+  $("save-progress").disabled=true;
+  const saveDraftLabel=$("save-progress").textContent;
+  $("save-progress").textContent="Salvando...";
+  try{
   if(isPreviewMode){toast("Modo de demonstração: o progresso não será gravado.");return}
   if(!selectedCourse)return;
   const draft={
@@ -488,6 +509,11 @@ async function saveDraft(){
     $("course-search").value="";searchCourses();showView("search-view",1);
     toast("Progresso salvo no banco compartilhado.");
   }catch(error){if(!handleSupabaseError(error))toast("Não foi possível salvar o progresso.")}
+  }finally{
+    savingDraft=false;
+    $("save-progress").disabled=false;
+    if(selectedCourse&&!$("save-progress").classList.contains("saved"))$("save-progress").textContent=saveDraftLabel;
+  }
 }
 function renderDrafts(){
   const valid=evaluationDrafts.filter(draft=>COURSES.some(course=>course.code===draft.code));
