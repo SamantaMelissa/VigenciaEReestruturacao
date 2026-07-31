@@ -8,6 +8,12 @@ const escapeHtml=text=>String(text??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":
 const formatUnitCode=code=>{const digits=String(code??"").replace(/\D/g,"");return digits.length===3?`${digits[0]}.${digits.slice(1)}`:String(code??"")};
 const validationUnit=item=>item.contacted_unit||((item.units||[])[0]?formatUnitCode(item.units[0]):"");
 const statusLabel=status=>status==="em_contato"?"Em contato":status==="concluido"?"Concluído":"Pendente";
+const contactCard=item=>`
+  <article class="contact-item ${item.status}" data-contact-id="${item.id}">
+    <span class="contact-item-icon">${item.status==="concluido"?"✓":"☎"}</span>
+    <div class="contact-item-main"><small>Código ${escapeHtml(item.course_code)}</small><strong>${escapeHtml(item.course_name)}</strong><span>${escapeHtml(item.criterion_label)}</span></div>
+    <div class="contact-item-meta"><span class="contact-units">Unidade: ${validationUnit(item)?escapeHtml(validationUnit(item)):"não informada"}</span><span class="contact-status ${item.status}">${statusLabel(item.status)}</span></div>
+  </article>`;
 
 function render(){
   const q=normalize($("contact-search").value),filter=$("contact-filter").value;
@@ -15,15 +21,13 @@ function render(){
     normalize(`${item.course_code} ${item.course_name} ${validationUnit(item)}`).includes(q)&&
     (filter==="todos"||item.status===filter)
   );
+  const activeItems=items.filter(item=>item.status!=="concluido");
+  const completedItems=items.filter(item=>item.status==="concluido");
   const count=status=>contactQueue.filter(item=>item.status===status).length;
   $("contact-open").textContent=count("pendente");$("contact-progress").textContent=count("em_contato");$("contact-done").textContent=count("concluido");
-  $("contact-list").innerHTML=items.length?items.map(item=>`
-    <article class="contact-item" data-contact-id="${item.id}">
-      <span class="contact-item-icon">☎</span>
-      <div><strong>${escapeHtml(item.course_name)}</strong><small>Código ${item.course_code} · ${escapeHtml(item.criterion_label)}</small></div>
-      <span class="contact-units">Unidade: ${validationUnit(item)?escapeHtml(validationUnit(item)):"não informada"}</span>
-      <span class="contact-status ${item.status}">${statusLabel(item.status)}</span>
-    </article>`).join(""):`<div class="contact-empty"><strong>Nenhuma pendência encontrada</strong><br>Os cursos que exigirem contato com uma unidade aparecerão aqui automaticamente.</div>`;
+  $("completed-visible-count").textContent=completedItems.length.toLocaleString("pt-BR");
+  $("contact-list").innerHTML=activeItems.length?activeItems.map(contactCard).join(""):`<div class="contact-empty"><strong>Nenhuma validação em aberto</strong><br>Não há cursos que precisem de ação com os filtros atuais.</div>`;
+  $("completed-contact-list").innerHTML=completedItems.length?completedItems.map(contactCard).join(""):`<div class="contact-empty"><strong>Nenhuma validação concluída encontrada</strong><br>Os retornos finalizados aparecerão nesta área.</div>`;
   document.querySelectorAll("[data-contact-id]").forEach(card=>card.onclick=()=>openContact(card.dataset.contactId));
 }
 
@@ -96,7 +100,7 @@ async function deleteContact(){
 }
 function toast(text){$("toast").textContent=text;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2500)}
 
-$("contact-search").oninput=render;$("contact-filter").onchange=render;$("contact-modal-close").onclick=closeContact;
+$("contact-search").oninput=render;$("contact-filter").onchange=()=>{$("completed-validations").open=$("contact-filter").value==="concluido";render()};$("contact-modal-close").onclick=closeContact;
 $("contact-save").onclick=saveContact;$("contact-delete").onclick=deleteContact;$("contact-modal").onclick=event=>{if(event.target===$("contact-modal"))closeContact()};
 $("contact-answer").onchange=updateReturnButton;$("contact-return").onclick=saveAndReturn;
 

@@ -32,7 +32,12 @@
           </div>
         </div>
         <div class="contact-toolbar"><input id="contact-search" placeholder="Buscar curso, código ou unidade"><select id="contact-filter"><option value="todos">Todos os status</option><option value="pendente">Pendentes</option><option value="em_contato">Em contato</option><option value="concluido">Concluídos</option></select></div>
+        <div class="validation-section-heading"><div><span class="section-kicker">EM ABERTO</span><h3>Validações que precisam de ação</h3></div><small>Selecione um curso para registrar ou continuar o contato.</small></div>
         <div class="contact-list" id="contact-list"></div>
+        <details class="completed-validations" id="completed-validations">
+          <summary><div><span class="section-kicker">HISTÓRICO</span><strong>Validações concluídas</strong></div><span><b id="completed-visible-count">0</b> registros <i>⌄</i></span></summary>
+          <div class="contact-list completed-contact-list" id="completed-contact-list"></div>
+        </details>
       </section>
     </main>
     <footer><span>SENAI · Fábrica de Cursos</span><span>Central de acompanhamento das unidades</span></footer>
