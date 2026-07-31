@@ -835,11 +835,6 @@ $("existing-analysis-open").onclick=()=>{
 $("existing-analysis-modal").onclick=event=>{
   if(event.target===$("existing-analysis-modal"))$("existing-analysis-close").click();
 };
-$("saved-analyses-link").onclick=event=>{
-  event.preventDefault();
-  $("course-search").value="";searchCourses();showView("search-view",1);
-  requestAnimationFrame(()=>$("analises-salvas").scrollIntoView({behavior:"smooth",block:"start"}));
-};
 async function initializeApp(){
   try{
     await requireSupabaseSession();

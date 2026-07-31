@@ -34,7 +34,6 @@ async function initializePending(){
   try{
     await requireSupabaseSession();
     if(isPreviewMode){location.replace("index.html");return}
-    if(!["gestor","admin"].includes(appProfile?.role)){location.replace("index.html");return}
     const [scope,evaluations]=await Promise.all([
       remoteDb.analysisScope(),
       remoteDb.evaluations(["rascunho","em_analise","concluida"])
