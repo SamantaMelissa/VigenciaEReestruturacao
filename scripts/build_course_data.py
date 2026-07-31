@@ -16,20 +16,6 @@ DECISIONS_SOURCE = (
 DECISIONS_SEED_OUTPUT = ROOT / "supabase" / "seed_initial_decisions.sql"
 DECISIONS_FIX_OUTPUT = ROOT / "supabase" / "fix_initial_decision_criteria.sql"
 COURSE_SCOPE_OUTPUT = ROOT / "supabase" / "sync_course_analysis_scope.sql"
-OUT_OF_GRID_SOURCE = ROOT / "config" / "courses-out-of-grid.txt"
-
-
-def load_code_list(path):
-    if not path.exists():
-        return set()
-    return {
-        line.strip()
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
-    }
-
-
-OUT_OF_GRID_CODES = load_code_list(OUT_OF_GRID_SOURCE)
 
 wb = load_workbook(SOURCE, data_only=True, read_only=True)
 export = wb["Export"]
@@ -135,16 +121,13 @@ course_scope = [
         "code": item["code"],
         "name": item["name"],
         "creatorUnit": str(item["creator"]).strip(),
-        "isAnalyzable": (
-            str(item["creator"]).strip().upper() == "GED"
-            and item["code"] not in OUT_OF_GRID_CODES
-        ),
+        "isAnalyzable": str(item["creator"]).strip().upper() == "GED",
     }
     for item in courses
 ]
 course_scope_json = json.dumps(course_scope, ensure_ascii=False, separators=(",", ":"))
 course_scope_sql = f"""-- Sincroniza o escopo de cursos que podem ser analisados.
--- Regra vigente: Unidade criadora = GED, exceto cursos retirados da grade.
+-- Regra vigente: somente Unidade criadora = GED.
 -- O script não apaga dados e pode ser executado novamente com segurança.
 
 begin;

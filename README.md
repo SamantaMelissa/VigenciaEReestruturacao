@@ -120,8 +120,6 @@ python scripts/build_course_data.py
 
 O script atualiza `assets/data/courses-data.js`, utilizado pelo site estático. Quando houver mudanças no escopo de cursos ou decisões iniciais, revise também os arquivos SQL gerados antes de executá-los no Supabase.
 
-Cursos oficialmente retirados da grade devem ser registrados em `config/courses-out-of-grid.txt`. Eles permanecem no catálogo técnico e no histórico, mas o gerador os marca como não analisáveis. Para aplicar a lista atual diretamente no banco, execute `supabase/remove_courses_from_grid.sql`.
-
 ## Execução local
 
 Como o projeto é estático, ele pode ser servido por qualquer servidor HTTP local. Exemplo:

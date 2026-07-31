@@ -89,8 +89,3 @@ histórico, mas ficam fora das novas análises.
 
 O script usa o código do curso como chave, não apaga registros e pode ser
 executado novamente quando a planilha for atualizada.
-
-Para retirar especificamente cursos descontinuados da grade sem apagar o
-histórico, execute `remove_courses_from_grid.sql`. A fonte versionada dessa
-exclusão fica em `config/courses-out-of-grid.txt`, e o gerador aplica a mesma
-regra nas sincronizações futuras.
