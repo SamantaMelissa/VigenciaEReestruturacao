@@ -385,6 +385,12 @@ end;
 $$;
 revoke all on function public.claim_ready_evaluation(text) from public;
 grant execute on function public.claim_ready_evaluation(text) to authenticated;
+update public.evaluations evaluation
+set state=jsonb_set(coalesce(evaluation.state,'{}'::jsonb),'{validationReady}','true'::jsonb,true),updated_at=now()
+from public.school_validations validation
+where validation.evaluation_id=evaluation.id and validation.school_answer is true
+  and validation.status='concluido' and evaluation.status in ('rascunho','em_analise')
+  and lower(coalesce(evaluation.state ->> 'validationReady','false'))<>'true';
 grant select, insert, update, delete on public.evaluation_answers to authenticated;
 grant select, insert, update, delete on public.school_validations to authenticated;
 grant select on public.audit_events to authenticated;
