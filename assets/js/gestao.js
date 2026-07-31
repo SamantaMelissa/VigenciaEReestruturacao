@@ -9,6 +9,7 @@ let completedEvaluations=[];
 
 function resultGroup(result){
   const value=normalize(result);
+  if(value.includes("troca de area"))return "Troca de área";
   if(value.includes("reestruturar"))return "Reestruturar";
   if(value.includes("fechar"))return "Fechar vigência";
   if(value.includes("manter"))return "Manter";
@@ -27,12 +28,12 @@ function renderBars(target,entries){
 
 function renderTable(){
   const query=normalize($("manager-search").value);
-  const items=completedEvaluations.filter(item=>normalize(`${item.course_name} ${item.course_code} ${item.final_result}`).includes(query)).slice(0,12);
+  const items=completedEvaluations.filter(item=>normalize(`${item.course_name} ${item.course_code} ${item.final_result} ${item.state?.targetArea||""}`).includes(query)).slice(0,12);
   $("manager-table").innerHTML=items.length?`
     <div class="manager-table-head"><span>Curso</span><span>Critério</span><span>Decisão</span><span>Atualização</span></div>
     ${items.map(item=>`
       <div class="manager-table-row">
-        <div><strong>${escapeHtml(item.course_name)}</strong><small>Código ${escapeHtml(item.course_code)}</small></div>
+        <div><strong>${escapeHtml(item.course_name)}</strong><small>Código ${escapeHtml(item.course_code)}${item.state?.changeType==="troca_area"?` · Nova área: ${escapeHtml(item.state.targetArea||"Não informada")}`:""}</small></div>
         <span>${escapeHtml(item.criterion_label)}</span>
         <b class="manager-decision">${escapeHtml(formatDecisionResult(item.final_result)||"Não informado")}</b>
         <time>${new Date(item.updated_at).toLocaleDateString("pt-BR")}</time>
@@ -44,21 +45,19 @@ async function initializeManager(){
   try{
     await requireSupabaseSession();
     if(isPreviewMode){location.replace("index.html");return}
-    if(!["gestor","admin"].includes(appProfile?.role)){
-      location.replace("index.html");
-      return;
-    }
-    const [completed,drafts,validations]=await Promise.all([
+    const [completed,claims,validations]=await Promise.all([
       remoteDb.evaluations(["concluida"]),
-      remoteDb.evaluations(["rascunho","em_analise"]),
+      remoteDb.evaluationClaims(),
       remoteDb.validations()
     ]);
     completedEvaluations=completed;
+    const areaChanges=completed.filter(item=>item.state?.changeType==="troca_area"||normalize(item.final_result).includes("troca de area"));
     const openValidations=validations.filter(item=>item.status!=="concluido");
     $("kpi-completed").textContent=completed.length.toLocaleString("pt-BR");
-    $("kpi-drafts").textContent=drafts.length.toLocaleString("pt-BR");
+    $("kpi-drafts").textContent=claims.length.toLocaleString("pt-BR");
     $("kpi-open").textContent=openValidations.length.toLocaleString("pt-BR");
     $("kpi-validations").textContent=validations.filter(item=>item.status==="concluido").length.toLocaleString("pt-BR");
+    $("kpi-area-changes").textContent=areaChanges.length.toLocaleString("pt-BR");
     $("manager-updated").textContent=new Date().toLocaleString("pt-BR");
 
     const results=Object.entries(completed.reduce((groups,item)=>{
@@ -67,8 +66,12 @@ async function initializeManager(){
     const criteria=Object.entries(completed.reduce((groups,item)=>{
       const key=item.criterion_label||"Não informado";groups[key]=(groups[key]||0)+1;return groups;
     },{})).sort((a,b)=>b[1]-a[1]);
+    const targetAreas=Object.entries(areaChanges.reduce((groups,item)=>{
+      const key=item.state?.targetArea||"Área não informada";groups[key]=(groups[key]||0)+1;return groups;
+    },{})).sort((a,b)=>b[1]-a[1]);
     renderBars("result-bars",results);
     renderBars("criterion-bars",criteria);
+    renderBars("area-change-bars",targetAreas);
     renderTable();
   }catch(error){
     handleSupabaseError(error);

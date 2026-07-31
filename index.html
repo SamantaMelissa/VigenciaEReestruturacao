@@ -19,7 +19,7 @@
         <span><strong>Radar de Cursos</strong><small>Decisão orientada por evidências</small></span>
       </a>
       <div class="top-actions">
-        <a class="contact-nav manager-only" href="gestao.html">Painel gestor</a>
+        <a class="contact-nav" href="gestao.html">Painel gestor</a>
         <a class="contact-nav" href="pendencias.html">Análises pendentes</a>
         <a class="contact-nav live-only" href="validacoes.html">Central de validações <b id="contact-count">0</b></a>
       </div>
@@ -93,6 +93,7 @@
             </div>
             <div class="panel-actions">
               <button class="btn secondary back-search">Escolher outro</button>
+              <button class="btn area-change-trigger" id="area-change-open">Alterar segmento ou área de atuação</button>
               <button class="btn primary" id="start-evaluation">Confirmar e iniciar análise <span>→</span></button>
             </div>
           </div>
@@ -228,6 +229,43 @@
       <div class="scenario-fix-actions">
         <button class="btn secondary" type="button" id="scenario-fix-cancel">Cancelar</button>
         <button class="btn primary" type="button" id="scenario-fix-save" disabled>Salvar cenário</button>
+      </div>
+    </div>
+  </div>
+  <div class="scenario-fix-modal area-change-modal" id="area-change-modal" aria-hidden="true">
+    <div class="scenario-fix-card" role="dialog" aria-modal="true" aria-labelledby="area-change-title">
+      <div class="scenario-fix-head">
+        <div><span>DESFECHO DIRETO</span><h2 id="area-change-title">Alterar segmento ou área de atuação</h2></div>
+        <button type="button" id="area-change-close" aria-label="Fechar">×</button>
+      </div>
+      <p>Informe a nova área para concluir este curso como troca de área, sem percorrer o questionário.</p>
+      <div class="area-change-form">
+        <label>Nova área de atuação
+          <select id="area-change-target">
+            <option value="">Selecione a área</option>
+            <option>Administração e Gestão</option>
+            <option>Alimentos e Bebidas</option>
+            <option>Automotiva</option>
+            <option>Construção Civil e Design de Mobiliário</option>
+            <option>Design de Moda, Têxtil, Vestuário, Calçados e Joalheria</option>
+            <option>Design Gráfico, Papel, Celulose, Gráfica e Editorial</option>
+            <option>Fabricação Mecânica e Mecânica Industrial</option>
+            <option>Logística e Transporte</option>
+            <option>Mecatrônica, Sistemas de Automação, Energia e Eletrônica</option>
+            <option>Meio Ambiente, Saúde e Segurança do Trabalho</option>
+            <option>Metalurgia e Soldagem</option>
+            <option>Química, Cerâmica e Plásticos</option>
+            <option>Refrigeração e Climatização</option>
+            <option>Tecnologia da Informação e Informática</option>
+          </select>
+        </label>
+        <label>Justificativa ou observação
+          <textarea id="area-change-notes" rows="4" placeholder="Explique brevemente o motivo da troca de área..."></textarea>
+        </label>
+      </div>
+      <div class="scenario-fix-actions">
+        <button class="btn secondary" type="button" id="area-change-cancel">Cancelar</button>
+        <button class="btn primary" type="button" id="area-change-save" disabled>Concluir como troca de área</button>
       </div>
     </div>
   </div>

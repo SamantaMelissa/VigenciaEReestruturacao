@@ -95,6 +95,8 @@ create table public.course_analysis_scope (
 create index evaluations_course_code_idx on public.evaluations(course_code);
 create index evaluations_status_idx on public.evaluations(status);
 create index evaluations_created_by_idx on public.evaluations(created_by);
+create unique index evaluations_one_active_per_course_idx on public.evaluations(course_code)
+where status in ('rascunho', 'em_analise');
 create index answers_evaluation_idx on public.evaluation_answers(evaluation_id);
 create index validations_course_code_idx on public.school_validations(course_code);
 create index validations_status_idx on public.school_validations(status);
@@ -306,6 +308,16 @@ with check (public.current_user_role() in ('gestor', 'admin'));
 grant usage on schema public to authenticated;
 grant select, update on public.profiles to authenticated;
 grant select, insert, update, delete on public.evaluations to authenticated;
+create or replace function public.list_active_evaluation_claims()
+returns table(course_code text, created_by uuid, status public.evaluation_status, updated_at timestamptz)
+language sql stable security definer set search_path = public
+as $$
+  select evaluation.course_code, evaluation.created_by, evaluation.status, evaluation.updated_at
+  from public.evaluations evaluation
+  where evaluation.status in ('rascunho', 'em_analise');
+$$;
+revoke all on function public.list_active_evaluation_claims() from public;
+grant execute on function public.list_active_evaluation_claims() to authenticated;
 grant select, insert, update, delete on public.evaluation_answers to authenticated;
 grant select, insert, update, delete on public.school_validations to authenticated;
 grant select on public.audit_events to authenticated;

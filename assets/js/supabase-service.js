@@ -309,4 +309,9 @@ window.remoteDb = {
     if (error) throw error;
     return data || [];
   },
+  async evaluationClaims() {
+    const { data, error } = await window.supabaseClient.rpc("list_active_evaluation_claims");
+    if (error) throw error;
+    return data || [];
+  },
 };

@@ -47,6 +47,7 @@ let contactQueue=[];
 let evaluationDrafts=[];
 let savingResult=false;
 let savingDraft=false;
+let savingAreaChange=false;
 const $=id=>document.getElementById(id);
 const normalize=text=>(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const escapeHtml=text=>String(text??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -144,6 +145,9 @@ function mapRemoteEvaluation(row){
     answers:state.answers||[],
     questionObservations:state.questionObservations||{},
     scenarioSelections:state.scenarioSelections||{},
+    changeType:state.changeType||"",
+    targetArea:state.targetArea||"",
+    previousArea:state.previousArea||"",
     savedAt:row.updated_at,
     createdBy:row.created_by,
     rawState:state
@@ -231,12 +235,95 @@ function selectCourse(code){
   $("evidence-note").textContent=active===3?"Há matrículas em todos os anos disponíveis (2023–2025). A oferta anterior e 2026 ainda exigem confirmação.":active?`Há matrículas em ${active} dos 3 anos disponíveis. Confirme eventuais ofertas sem matrícula e dados de 2026.`:"Não há matrículas registradas entre 2023 e 2025 para este código.";
   showView("validate-view",2);
 }
-function startEvaluation(){
+async function startEvaluation(){
+  if(!selectedCourse)return;
+  const existing=evaluationDrafts.find(item=>String(item.code)===String(selectedCourse.code));
+  if(existing){resumeDraft(selectedCourse.code);return}
+  if(!isPreviewMode){
+    const button=$("start-evaluation"),originalLabel=button.textContent;
+    button.disabled=true;button.textContent="Reservando análise...";
+    try{
+      const payload={
+        course_code:selectedCourse.code,course_name:selectedCourse.name,criterion_key:selectedCourse.criterion,
+        criterion_label:CRITERIA[selectedCourse.criterion].short,status:"em_analise",current_question:1,
+        final_result:null,justification:null,created_by:appSession.user.id,
+        state:{answers:[],questionObservations:{},scenarioSelections:{},enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[]}
+      };
+      const {data,error}=await supabaseClient.from("evaluations").insert(payload).select().single();
+      if(error)throw error;
+      evaluationDrafts.unshift(mapRemoteEvaluation(data));
+      renderDrafts();
+    }catch(error){
+      if(error?.code==="23505"){
+        toast("Este curso acabou de ser reservado por outro avaliador.");
+        reset();
+      }else if(!handleSupabaseError(error))toast("Não foi possível reservar esta análise.");
+      return;
+    }finally{button.disabled=false;button.textContent=originalLabel}
+  }
   currentQuestion=1;answers=[];finalResult="";questionObservations={};scenarioSelections={};
   $("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";
   $("mini-code").textContent=selectedCourse.code;$("mini-name").textContent=selectedCourse.name;$("mini-criterion").textContent=CRITERIA[selectedCourse.criterion].label;
   $("course-offers-link").href=senaiOffersUrl(selectedCourse.name);
   showView("quiz-view",3);renderQuestion();
+}
+function openAreaChange(){
+  if(!selectedCourse)return;
+  $("area-change-target").value="";
+  $("area-change-notes").value="";
+  $("area-change-save").disabled=true;
+  $("area-change-modal").classList.add("open");
+  $("area-change-modal").setAttribute("aria-hidden","false");
+}
+function closeAreaChange(){
+  if(savingAreaChange)return;
+  $("area-change-modal").classList.remove("open");
+  $("area-change-modal").setAttribute("aria-hidden","true");
+}
+async function saveAreaChange(){
+  if(savingAreaChange||!selectedCourse)return;
+  const targetArea=$("area-change-target").value;
+  const notes=$("area-change-notes").value.trim();
+  if(!targetArea){toast("Selecione a nova área de atuação.");return}
+  if(isPreviewMode){toast("Modo de demonstração: a troca de área não será gravada.");return}
+  savingAreaChange=true;
+  const button=$("area-change-save"),originalLabel=button.textContent;
+  button.disabled=true;button.textContent="Salvando...";
+  try{
+    let reservation=evaluationDrafts.find(item=>String(item.code)===String(selectedCourse.code));
+    if(!reservation){
+      const claimPayload={
+        course_code:selectedCourse.code,course_name:selectedCourse.name,criterion_key:selectedCourse.criterion,
+        criterion_label:CRITERIA[selectedCourse.criterion].short,status:"em_analise",current_question:1,
+        final_result:null,justification:null,created_by:appSession.user.id,
+        state:{answers:[],enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[]}
+      };
+      const {data,error}=await supabaseClient.from("evaluations").insert(claimPayload).select().single();
+      if(error)throw error;
+      reservation=mapRemoteEvaluation(data);evaluationDrafts.unshift(reservation);
+    }
+    const previousArea=selectedCourse.area||"Não informada";
+    const justification=`O curso ${selectedCourse.name} deve ser transferido da área ${previousArea} para ${targetArea}.${notes?` Como justificativa, foi registrado: ${notes}.`:""}`;
+    const state={
+      ...(reservation.rawState||{}),answers:[],decisionPath:[],changeType:"troca_area",previousArea,targetArea,
+      areaChangeNotes:notes,enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[],source:"Troca de área registrada no sistema"
+    };
+    const {data,error}=await supabaseClient.from("evaluations").update({
+      status:"concluida",current_question:null,final_result:"TROCA DE ÁREA",justification,state,completed_at:new Date().toISOString()
+    }).eq("id",reservation.remoteId).select().single();
+    if(error)throw error;
+    const completed=mapRemoteEvaluation(data);
+    history=history.filter(item=>String(item.code)!==String(selectedCourse.code));history.unshift(completed);
+    evaluationDrafts=evaluationDrafts.filter(item=>String(item.code)!==String(selectedCourse.code));
+    $("area-change-modal").classList.remove("open");$("area-change-modal").setAttribute("aria-hidden","true");
+    renderHistory();renderDrafts();reset();toast("Curso concluído como troca de área.");
+  }catch(error){
+    if(error?.code==="23505"){
+      $("area-change-modal").classList.remove("open");$("area-change-modal").setAttribute("aria-hidden","true");
+      reset();toast("Este curso está reservado por outro avaliador.");
+    }
+    else if(!handleSupabaseError(error))toast("Não foi possível registrar a troca de área.");
+  }finally{savingAreaChange=false;button.textContent=originalLabel;button.disabled=!$("area-change-target").value}
 }
 function suggestionFor(step){
   const e=selectedCourse.enrollments,units=selectedCourse.units;
@@ -562,7 +649,8 @@ function openHistory(id){
     <div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div>
     <div><span>Origem</span><strong>${escapeHtml(item.source||"Avaliação do sistema")}</strong></div>
     <div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div>
-    <div><span>Unidades ofertantes</span><strong>${units&&units.length?units.map(formatUnitCode).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
+    <div><span>Unidades ofertantes</span><strong>${units&&units.length?units.map(formatUnitCode).map(escapeHtml).join(", "):"Não registradas"}</strong></div>
+    ${item.changeType==="troca_area"?`<div><span>Área anterior</span><strong>${escapeHtml(item.previousArea||course?.area||"Não informada")}</strong></div><div><span>Nova área de atuação</span><strong>${escapeHtml(item.targetArea||"Não informada")}</strong></div>`:""}`;
   let processItems=(item.decisionPath||[]).map(step=>({
     ...step,
     scenarios:step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[])
@@ -794,6 +882,12 @@ $("course-search").addEventListener("input",searchCourses);
 $("clear-search").onclick=()=>{$("course-search").value="";searchCourses();$("course-search").focus()};
 document.querySelectorAll(".back-search").forEach(b=>b.onclick=reset);
 $("start-evaluation").onclick=startEvaluation;
+$("area-change-open").onclick=openAreaChange;
+$("area-change-target").onchange=()=>$("area-change-save").disabled=!$("area-change-target").value;
+$("area-change-save").onclick=saveAreaChange;
+$("area-change-close").onclick=closeAreaChange;
+$("area-change-cancel").onclick=closeAreaChange;
+$("area-change-modal").onclick=event=>{if(event.target===$("area-change-modal"))closeAreaChange()};
 $("save-progress").onclick=saveDraft;
 $("question-observation-text").oninput=event=>{
   questionObservations[currentQuestion]=event.target.value;

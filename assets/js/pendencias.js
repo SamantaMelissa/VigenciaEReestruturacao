@@ -34,13 +34,14 @@ async function initializePending(){
   try{
     await requireSupabaseSession();
     if(isPreviewMode){location.replace("index.html");return}
-    const [scope,evaluations]=await Promise.all([
+    const [scope,evaluations,claims]=await Promise.all([
       remoteDb.analysisScope(),
-      remoteDb.evaluations(["rascunho","em_analise","concluida"])
+      remoteDb.evaluations(["rascunho","em_analise","concluida"]),
+      remoteDb.evaluationClaims()
     ]);
     const completedCodes=new Set(evaluations.filter(item=>item.status==="concluida").map(item=>String(item.course_code)));
-    const draftCodes=new Set(evaluations.filter(item=>item.status!=="concluida").map(item=>String(item.course_code)));
-    const ownDraftCodes=new Set(evaluations.filter(item=>item.status!=="concluida"&&item.created_by===appSession.user.id).map(item=>String(item.course_code)));
+    const draftCodes=new Set(claims.map(item=>String(item.course_code)));
+    const ownDraftCodes=new Set(claims.filter(item=>item.created_by===appSession.user.id).map(item=>String(item.course_code)));
     const eligible=scope.filter(item=>item.is_analyzable);
     pendingCourses=eligible
       .filter(item=>!completedCodes.has(String(item.course_code)))
