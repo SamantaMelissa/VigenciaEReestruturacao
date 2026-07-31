@@ -1,4 +1,6 @@
 const COURSES = window.COURSES_DATA || [];
+const ANALYZABLE_COURSES = COURSES.filter(course=>String(course.creator||"").trim().toUpperCase()==="GED");
+let analysisScopeCodes=new Set(ANALYZABLE_COURSES.map(course=>String(course.code)));
 const CRITERIA = {
   regular: {
     label: "Regulares e Qualificação FIC",
@@ -35,8 +37,10 @@ const CRITERIA = {
   }
 };
 
-let selectedCourse=null,currentQuestion=1,answers=[],finalResult="",questionObservations={};
+let selectedCourse=null,currentQuestion=1,answers=[],finalResult="",questionObservations={},scenarioSelections={};
 let existingAnalysis=null;
+let editingEvaluation=null;
+let activeHistoryId=null;
 let history=[];
 let contactQueue=[];
 let evaluationDrafts=[];
@@ -58,6 +62,16 @@ const formatUnitCode=code=>{
   const digits=String(code??"").replace(/\D/g,"");
   return digits.length===3?`${digits[0]}.${digits.slice(1)}`:String(code??"");
 };
+function parseImportedDecisionPath(justification){
+  const fragments=String(justification||"").split(/[;\r\n]+/).map(text=>text.trim()).filter(Boolean);
+  const startsDecision=text=>/^(NÃO\s+)?(?:HOUVE|MAIS DE UMA ESCOLA|SOMENTE UMA ESCOLA|O CURSO|A ESCOLA|A CBO|É UMA|NÃO É UMA|O PERFIL|HÁ ALGUMA|NÃO HÁ ALGUMA|A TECNOLOGIA|O DESENHO|OS PADRÕES|É UM CURSO|POSSUI UNIDADES|A DATA|CURSO INATIVO)/i.test(text);
+  const grouped=[];
+  fragments.forEach(fragment=>{
+    if(!grouped.length||startsDecision(fragment))grouped.push(fragment);
+    else grouped[grouped.length-1]=`${grouped[grouped.length-1]} ${fragment}`;
+  });
+  return grouped.map((text,index)=>({step:index+1,text,answer:null}));
+}
 function mapRemoteEvaluation(row){
   const state=row.state||{};
   return {
@@ -79,21 +93,26 @@ function mapRemoteEvaluation(row){
     currentQuestion:row.current_question,
     answers:state.answers||[],
     questionObservations:state.questionObservations||{},
+    scenarioSelections:state.scenarioSelections||{},
     savedAt:row.updated_at,
-    createdBy:row.created_by
+    createdBy:row.created_by,
+    rawState:state
   };
 }
 async function loadRemoteAppData(){
-  const [completed,drafts,validations]=await Promise.all([
+  const [completed,drafts,validations,analysisScope]=await Promise.all([
     remoteDb.evaluations(["concluida"]),
     remoteDb.evaluations(["rascunho","em_analise"]),
-    remoteDb.validations()
+    remoteDb.validations(),
+    remoteDb.analysisScope()
   ]);
   history=completed.map(mapRemoteEvaluation);
   evaluationDrafts=drafts
     .filter(row=>row.created_by===appSession.user.id)
     .map(mapRemoteEvaluation);
   contactQueue=validations;
+  analysisScopeCodes=new Set(analysisScope.filter(item=>item.is_analyzable).map(item=>String(item.course_code)));
+  $("base-total").textContent=analysisScopeCodes.size;
 }
 function showView(id,step){
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));
@@ -107,7 +126,7 @@ function searchCourses(){
   $("clear-search").style.display=q?"block":"none";
   if(!q){box.style.display="none";$("search-empty").style.display="block";return}
   const terms=q.split(/\s+/);
-  const matches=COURSES.map(c=>{
+  const matches=COURSES.filter(course=>analysisScopeCodes.has(String(course.code))).map(c=>{
     const hay=normalize(`${c.code} ${c.name} ${c.type}`);
     return {c,score:terms.reduce((s,t)=>s+(hay.includes(t)?1:0),0)+(normalize(c.name).startsWith(q)?3:0)};
   }).filter(x=>x.score>=terms.length).sort((a,b)=>b.score-a.score||a.c.name.localeCompare(b.c.name)).slice(0,8);
@@ -141,7 +160,7 @@ function selectCourse(code){
   showView("validate-view",2);
 }
 function startEvaluation(){
-  currentQuestion=1;answers=[];finalResult="";questionObservations={};
+  currentQuestion=1;answers=[];finalResult="";questionObservations={};scenarioSelections={};
   $("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";
   $("mini-code").textContent=selectedCourse.code;$("mini-name").textContent=selectedCourse.name;$("mini-criterion").textContent=CRITERIA[selectedCourse.criterion].label;
   $("course-offers-link").href=senaiOffersUrl(selectedCourse.name);
@@ -250,6 +269,13 @@ function renderQuestion(){
     ?"Registre a justificativa técnica apresentada pela escola..."
     :"Registre quais tecnologias precisam ser incluídas ou retiradas...";
   $("question-observation-text").value=asksForObservation?(questionObservations[currentQuestion]||""):"";
+  const asksForScenarios=currentQuestion===4;
+  $("scenario-selector").classList.toggle("visible",asksForScenarios);
+  document.querySelectorAll("[data-scenario]").forEach(button=>{
+    const selected=(scenarioSelections[currentQuestion]||[]).includes(button.dataset.scenario);
+    button.classList.toggle("selected",selected);
+    button.setAttribute("aria-pressed",selected?"true":"false");
+  });
   const suggestion=suggestionFor(currentQuestion);
   $("data-suggestion").innerHTML=suggestion
     ?`<div class="suggestion-title"><span>▦</span><strong>${suggestion.title}</strong>${suggestion.action||""}</div>${suggestion.body}<p>${suggestion.conclusion}</p>`
@@ -272,16 +298,19 @@ function renderQuestion(){
 }
 function answer(value){
   const q=CRITERIA[selectedCourse.criterion].questions[currentQuestion];
+  const scenarios=currentQuestion===4?[...(scenarioSelections[currentQuestion]||[])]:[];
+  if(currentQuestion===4&&value&&!scenarios.length){toast("Selecione ao menos um cenário antes de confirmar Sim.");return}
+  if(currentQuestion===4&&!value)scenarioSelections[currentQuestion]=[];
   const observation=needsQuestionObservation(q.text)
     ?$("question-observation-text").value.trim()
     :"";
   if(observation)questionObservations[currentQuestion]=observation;
-  answers.push({step:currentQuestion,answer:value,text:q.text,observation});
+  answers.push({step:currentQuestion,answer:value,text:q.text,observation,scenarios:value?scenarios:[]});
   if(currentQuestion===5){
     const contact=contactQueue.find(item=>(item.course_code||item.code)===selectedCourse.code&&item.status!=="concluido");
     if(contact){
       const contactUpdate={
-        decision_trail:answers.map(a=>({step:a.step,answer:a.answer,text:a.text})),
+        decision_trail:answers.map(a=>({step:a.step,answer:a.answer,text:a.text,scenarios:a.scenarios||[]})),
         school_answer:value,status:"concluido",concluded_at:new Date().toISOString()
       };
       supabaseClient.from("school_validations").update(contactUpdate).eq("id",contact.id).select().single()
@@ -314,13 +343,13 @@ function showResult(){
   $("result-subtitle").textContent="A recomendação foi produzida pelo caminho oficial e permanece editável antes do registro.";
   $("result-course").textContent=selectedCourse.name;$("result-criterion").textContent=CRITERIA[selectedCourse.criterion].short;$("result-count").textContent=answers.length;
   $("justification").value=answers.map(a=>
-    `${a.answer?"SIM":"NÃO"} — ${a.text}${a.observation?`\nObservações: ${a.observation}`:""}`
+    `${a.answer?"SIM":"NÃO"} — ${a.text}${a.scenarios?.length?`\nCenários: ${a.scenarios.join(", ")}`:""}${a.observation?`\nObservações: ${a.observation}`:""}`
   ).join("\n")+"\n\nDECISÃO: "+formatDecisionResult(finalResult)+".";
   $("save-result").disabled=false;
-  $("save-result").textContent="Concluir e salvar";
+  $("save-result").textContent=editingEvaluation?"Atualizar avaliação":"Concluir e salvar";
   showView("result-view",4);
 }
-function reset(){selectedCourse=null;currentQuestion=1;answers=[];finalResult="";questionObservations={};$("course-search").value="";searchCourses();showView("search-view",1)}
+function reset(){selectedCourse=null;editingEvaluation=null;currentQuestion=1;answers=[];finalResult="";questionObservations={};scenarioSelections={};$("course-search").value="";searchCourses();showView("search-view",1)}
 async function saveResult(){
   if(savingResult)return;
   savingResult=true;
@@ -329,18 +358,21 @@ async function saveResult(){
   $("save-result").textContent="Salvando...";
   try{
   if(isPreviewMode){toast("Modo de demonstração: a análise não será gravada.");return}
-  const {data:completed,error:completedError}=await supabaseClient.from("evaluations").select("*")
-    .eq("course_code",selectedCourse.code).eq("status","concluida").order("updated_at",{ascending:false}).limit(1).maybeSingle();
-  if(completedError){
-    if(!handleSupabaseError(completedError))toast("Não foi possível conferir as análises existentes.");
-    return;
-  }
-  if(completed){
-    const mapped=mapRemoteEvaluation(completed);
-    if(!history.some(item=>item.id===mapped.id))history.unshift(mapped);
-    renderHistory();reset();
-    toast("Este curso já possui uma análise concluída.");
-    return;
+  const wasEditing=Boolean(editingEvaluation);
+  if(!editingEvaluation){
+    const {data:completed,error:completedError}=await supabaseClient.from("evaluations").select("*")
+      .eq("course_code",selectedCourse.code).eq("status","concluida").order("updated_at",{ascending:false}).limit(1).maybeSingle();
+    if(completedError){
+      if(!handleSupabaseError(completedError))toast("Não foi possível conferir as análises existentes.");
+      return;
+    }
+    if(completed){
+      const mapped=mapRemoteEvaluation(completed);
+      if(!history.some(item=>item.id===mapped.id))history.unshift(mapped);
+      renderHistory();reset();
+      toast("Este curso já possui uma análise concluída.");
+      return;
+    }
   }
   const localRecord={
     id:Date.now(),
@@ -356,6 +388,7 @@ async function saveResult(){
     units:[...(selectedCourse.unitCodes||[])]
   };
   const draft=evaluationDrafts.find(item=>item.code===selectedCourse.code);
+  const {sourceId:discardedSourceId,imported:discardedImported,...preservedState}=editingEvaluation?.rawState||{};
   const payload={
     course_code:selectedCourse.code,
     course_name:selectedCourse.name,
@@ -366,12 +399,15 @@ async function saveResult(){
     final_result:finalResult,
     justification:$("justification").value,
     completed_at:new Date().toISOString(),
-    state:{decisionPath:localRecord.decisionPath,enrollments:localRecord.enrollments,units:localRecord.units,source:localRecord.source},
-    created_by:appSession.user.id
+    state:{...preservedState,decisionPath:localRecord.decisionPath,scenarioSelections:{...scenarioSelections},enrollments:localRecord.enrollments,units:localRecord.units,source:editingEvaluation?"Avaliação editada no sistema":localRecord.source,editedAt:editingEvaluation?new Date().toISOString():undefined},
+    created_by:editingEvaluation?.createdBy||appSession.user.id
   };
   try{
     let saved;
-    if(draft?.remoteId){
+    if(editingEvaluation?.remoteId){
+      const {data,error}=await supabaseClient.from("evaluations").update(payload).eq("id",editingEvaluation.remoteId).select().single();
+      if(error)throw error;saved=data;
+    }else if(draft?.remoteId){
       const {data,error}=await supabaseClient.from("evaluations").update(payload).eq("id",draft.remoteId).select().single();
       if(error)throw error;saved=data;
     }else{
@@ -384,19 +420,22 @@ async function saveResult(){
         source:item.step===5?"unidade":"usuario",answered_by:appSession.user.id,
         evidence:{
           ...(item.step<=3?{enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[]}:{}),
+          ...(item.scenarios?.length?{scenarios:item.scenarios}:{}),
           ...(item.observation?{observation:item.observation}:{})
         }
       }));
       const {error}=await supabaseClient.from("evaluation_answers").upsert(rows,{onConflict:"evaluation_id,question_step"});
       if(error)throw error;
     }
-    history.unshift(mapRemoteEvaluation(saved));
+    const mappedSaved=mapRemoteEvaluation(saved);
+    if(editingEvaluation)history=history.map(item=>String(item.id)===String(saved.id)?mappedSaved:item);
+    else history.unshift(mappedSaved);
     evaluationDrafts=evaluationDrafts.filter(item=>item.code!==selectedCourse.code);
     renderHistory();renderDrafts();
     $("save-result").disabled=true;
     reset();
     $("course-search").focus();
-    toast("Análise salva no banco compartilhado. Você já pode escolher outro curso.");
+    toast(wasEditing?"Avaliação atualizada no banco compartilhado.":"Análise salva no banco compartilhado. Você já pode escolher outro curso.");
   }catch(error){if(!handleSupabaseError(error))toast("Não foi possível salvar no Supabase. Tente novamente.")}
   }finally{
     savingResult=false;
@@ -435,6 +474,7 @@ function renderHistory(){
 }
 function openHistory(id){
   const item=history.find(entry=>String(entry.id)===String(id));if(!item)return;
+  activeHistoryId=item.id;
   const course=COURSES.find(entry=>entry.code===item.code);
   $("history-modal-title").textContent=item.name;
   $("history-modal-code").textContent=`Código ${item.code} · ${item.source||"Registro do sistema"}`;
@@ -450,19 +490,54 @@ function openHistory(id){
     <div><span>Unidades ofertantes</span><strong>${units&&units.length?units.map(formatUnitCode).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
   let processItems=item.decisionPath||[];
   if(!processItems.length&&item.justification){
-    processItems=item.justification.split(/[;\n]+/).map(text=>text.trim()).filter(Boolean).map((text,index)=>({step:index+1,text,answer:null}));
+    processItems=parseImportedDecisionPath(item.justification);
   }
   $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>`
     <div class="process-step">
       <span>${step.step||index+1}</span>
-      <div><strong>${escapeHtml(step.text)}</strong>${step.answer===null||step.answer===undefined?"":`<small class="${step.answer?"yes":"no"}">${step.answer?"SIM":"NÃO"}</small>`}${step.observation?`<p class="process-observation"><b>Observações:</b> ${escapeHtml(step.observation)}</p>`:""}</div>
+      <div><strong>${escapeHtml(step.text)}</strong>${step.answer===null||step.answer===undefined?"":`<small class="${step.answer?"yes":"no"}">${step.answer?"SIM":"NÃO"}</small>`}${step.scenarios?.length?`<p class="process-scenarios"><b>Cenários:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.observation?`<p class="process-observation"><b>Observações:</b> ${escapeHtml(step.observation)}</p>`:""}</div>
     </div>`).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
+  const complementaryRecords=[];
+  processItems.forEach(step=>{
+    if(step.scenarios?.length)complementaryRecords.push(`<p><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`);
+    if(step.observation)complementaryRecords.push(`<p><b>Observação da pergunta ${step.step||""}:</b> ${escapeHtml(step.observation)}</p>`);
+  });
+  if(item.observations)complementaryRecords.push(`<p><b>Observação importada:</b> ${escapeHtml(item.observations).replace(/\n/g,"<br>")}</p>`);
   $("history-justification").innerHTML=`
-    <div><span class="section-kicker">JUSTIFICATIVA CONSOLIDADA</span><p>${escapeHtml(item.justification||"Não informada").replace(/\n/g,"<br>")}</p></div>
-    ${item.observations?`<div><span class="section-kicker">OBSERVAÇÕES</span><p>${escapeHtml(item.observations).replace(/\n/g,"<br>")}</p></div>`:""}`;
+    <div class="single"><span class="section-kicker">JUSTIFICATIVA CONSOLIDADA</span>${complementaryRecords.length?complementaryRecords.join(""):'<p>Nenhum cenário ou observação complementar foi registrado.</p>'}</div>`;
+  const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
+  $("history-modal-edit").hidden=!canEdit;
   $("history-modal").classList.add("open");$("history-modal").setAttribute("aria-hidden","false");
 }
-function closeHistory(){$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true")}
+function closeHistory(){activeHistoryId=null;$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true")}
+function editHistoryEvaluation(){
+  const item=history.find(entry=>String(entry.id)===String(activeHistoryId));
+  const course=item&&COURSES.find(entry=>String(entry.code)===String(item.code));
+  if(!item||!course){toast("Não foi possível localizar este curso na base atual.");return}
+  const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
+  if(!canEdit){toast("Você não tem permissão para editar esta avaliação.");return}
+  editingEvaluation=item;
+  selectedCourse=course;
+  answers=(item.decisionPath||[]).filter(step=>typeof step.answer==="boolean").map(step=>({...step}));
+  questionObservations=Object.fromEntries(answers.filter(step=>step.observation).map(step=>[step.step,step.observation]));
+  scenarioSelections=Object.fromEntries(answers.filter(step=>step.scenarios?.length).map(step=>[step.step,[...step.scenarios]]));
+  finalResult=item.result||"";
+  currentQuestion=1;
+  $("mini-code").textContent=course.code;
+  $("mini-name").textContent=course.name;
+  $("mini-criterion").textContent=CRITERIA[course.criterion].label;
+  $("course-offers-link").href=senaiOffersUrl(course.name);
+  closeHistory();
+  if(answers.length&&finalResult){
+    showResult();
+    $("justification").value=item.justification||$("justification").value;
+    toast("Avaliação aberta para edição. Volte às perguntas que deseja alterar.");
+  }else{
+    answers=[];finalResult="";
+    showView("quiz-view",3);renderQuestion();
+    toast("A avaliação importada não possui respostas detalhadas. Refaça o fluxo para atualizá-la.");
+  }
+}
 function exportCsv(){
   if(!history.length){toast("Não há registros para exportar.");return}
   const rows=[["Data","Código","Curso","Critério","Resultado","Justificativa"],...history.map(h=>[h.date,h.code,h.name,h.criterion,formatDecisionResult(h.result),h.justification])];
@@ -484,14 +559,15 @@ async function saveDraft(){
     currentQuestion,
     answers:answers.map(a=>({...a})),
     savedAt:new Date().toISOString(),
-    questionObservations:{...questionObservations}
+    questionObservations:{...questionObservations},
+    scenarioSelections:{...scenarioSelections}
   };
   const existing=evaluationDrafts.find(item=>item.code===draft.code);
   const payload={
     course_code:selectedCourse.code,course_name:selectedCourse.name,criterion_key:selectedCourse.criterion,
     criterion_label:CRITERIA[selectedCourse.criterion].short,status:"rascunho",current_question:currentQuestion,
     final_result:null,justification:null,created_by:appSession.user.id,
-    state:{answers:draft.answers,questionObservations:draft.questionObservations,enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[]}
+    state:{answers:draft.answers,questionObservations:draft.questionObservations,scenarioSelections:draft.scenarioSelections,enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[]}
   };
   try{
     let saved;
@@ -536,7 +612,7 @@ function renderDrafts(){
 function resumeDraft(code){
   const draft=evaluationDrafts.find(item=>item.code===code),course=COURSES.find(item=>item.code===code);
   if(!draft||!course)return;
-  selectedCourse=course;currentQuestion=draft.currentQuestion;answers=draft.answers||[];finalResult=draft.finalResult||"";questionObservations=draft.questionObservations||{};
+  selectedCourse=course;currentQuestion=draft.currentQuestion;answers=draft.answers||[];finalResult=draft.finalResult||"";questionObservations=draft.questionObservations||{};scenarioSelections=draft.scenarioSelections||{};
   $("mini-code").textContent=course.code;$("mini-name").textContent=course.name;$("mini-criterion").textContent=CRITERIA[course.criterion].label;
   $("course-offers-link").href=senaiOffersUrl(course.name);
   $("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";
@@ -566,7 +642,7 @@ async function queueSchoolValidation(){
     units:selectedCourse.unitCodes||[],
     enrollments:{...selectedCourse.enrollments},
     question:CRITERIA[selectedCourse.criterion].questions[5].text,
-    trail:answers.map(a=>({step:a.step,answer:a.answer,text:a.text})),
+    trail:answers.map(a=>({step:a.step,answer:a.answer,text:a.text,scenarios:a.scenarios||[]})),
     updatedAt:new Date().toISOString()
   };
   try{
@@ -594,7 +670,7 @@ function updateContactBadge(){
 }
 function toast(text){$("toast").textContent=text;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2500)}
 
-$("base-total").textContent=COURSES.length;
+$("base-total").textContent=ANALYZABLE_COURSES.length;
 $("course-search").addEventListener("input",searchCourses);
 $("clear-search").onclick=()=>{$("course-search").value="";searchCourses();$("course-search").focus()};
 document.querySelectorAll(".back-search").forEach(b=>b.onclick=reset);
@@ -603,10 +679,20 @@ $("save-progress").onclick=saveDraft;
 $("question-observation-text").oninput=event=>{
   questionObservations[currentQuestion]=event.target.value;
 };
+document.querySelectorAll("[data-scenario]").forEach(button=>button.onclick=()=>{
+  const selected=new Set(scenarioSelections[currentQuestion]||[]);
+  if(selected.has(button.dataset.scenario))selected.delete(button.dataset.scenario);
+  else selected.add(button.dataset.scenario);
+  scenarioSelections[currentQuestion]=[...selected];
+  const isSelected=selected.has(button.dataset.scenario);
+  button.classList.toggle("selected",isSelected);
+  button.setAttribute("aria-pressed",isSelected?"true":"false");
+});
 document.querySelectorAll(".decision").forEach(b=>b.onclick=()=>answer(b.dataset.answer==="yes"));
 $("quiz-back").onclick=backQuestion;$("restart").onclick=reset;$("result-back").onclick=returnToLastQuestion;$("save-result").onclick=saveResult;
 $("history-search").oninput=renderHistory;$("export-csv").onclick=exportCsv;
 $("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;
+$("history-modal-edit").onclick=editHistoryEvaluation;
 $("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
 $("existing-analysis-close").onclick=()=>{
   existingAnalysis=null;
@@ -632,8 +718,11 @@ async function initializeApp(){
     await requireSupabaseSession();
     if(!isPreviewMode)await loadRemoteAppData();
     renderHistory();updateContactBadge();renderDrafts();
-    const resumeFromContact=new URLSearchParams(location.search).get("retomar");
+    const parameters=new URLSearchParams(location.search);
+    const resumeFromContact=parameters.get("retomar");
     if(resumeFromContact&&evaluationDrafts.some(draft=>draft.code===resumeFromContact))resumeDraft(resumeFromContact);
+    const courseToAnalyze=parameters.get("analisar");
+    if(courseToAnalyze&&analysisScopeCodes.has(String(courseToAnalyze)))selectCourse(courseToAnalyze);
   }catch(error){
     handleSupabaseError(error);
     showSystemUnavailable();

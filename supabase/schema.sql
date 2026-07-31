@@ -84,6 +84,14 @@ create table public.audit_events (
   created_at timestamptz not null default now()
 );
 
+create table public.course_analysis_scope (
+  course_code text primary key,
+  course_name text not null,
+  creator_unit text not null,
+  is_analyzable boolean not null,
+  updated_at timestamptz not null default now()
+);
+
 create index evaluations_course_code_idx on public.evaluations(course_code);
 create index evaluations_status_idx on public.evaluations(status);
 create index evaluations_created_by_idx on public.evaluations(created_by);
@@ -190,6 +198,7 @@ alter table public.evaluations enable row level security;
 alter table public.evaluation_answers enable row level security;
 alter table public.school_validations enable row level security;
 alter table public.audit_events enable row level security;
+alter table public.course_analysis_scope enable row level security;
 
 create policy "Authenticated users can view profiles"
 on public.profiles for select to authenticated using (true);
@@ -285,12 +294,22 @@ create policy "Managers can view audit events"
 on public.audit_events for select to authenticated
 using (public.current_user_role() in ('gestor', 'admin'));
 
+create policy "Authenticated users view course analysis scope"
+on public.course_analysis_scope for select to authenticated
+using (true);
+
+create policy "Managers maintain course analysis scope"
+on public.course_analysis_scope for all to authenticated
+using (public.current_user_role() in ('gestor', 'admin'))
+with check (public.current_user_role() in ('gestor', 'admin'));
+
 grant usage on schema public to authenticated;
 grant select, update on public.profiles to authenticated;
 grant select, insert, update, delete on public.evaluations to authenticated;
 grant select, insert, update, delete on public.evaluation_answers to authenticated;
 grant select, insert, update, delete on public.school_validations to authenticated;
 grant select on public.audit_events to authenticated;
+grant select, insert, update, delete on public.course_analysis_scope to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 
 commit;

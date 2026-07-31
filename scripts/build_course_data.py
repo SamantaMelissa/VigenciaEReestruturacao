@@ -7,9 +7,15 @@ from openpyxl import load_workbook
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "Dados" / "T.I. Dados dos cursos 2026.xlsx"
 OUTPUT = ROOT / "assets" / "data" / "courses-data.js"
-DECISIONS_SOURCE = ROOT / "Dados" / "Definição da Situação dos Cursos.xlsx"
+ROOT_DECISIONS_SOURCE = ROOT / "Definição da Situação dos Cursos.xlsx"
+DECISIONS_SOURCE = (
+    ROOT_DECISIONS_SOURCE
+    if ROOT_DECISIONS_SOURCE.exists()
+    else ROOT / "Dados" / "Definição da Situação dos Cursos.xlsx"
+)
 DECISIONS_SEED_OUTPUT = ROOT / "supabase" / "seed_initial_decisions.sql"
 DECISIONS_FIX_OUTPUT = ROOT / "supabase" / "fix_initial_decision_criteria.sql"
+COURSE_SCOPE_OUTPUT = ROOT / "supabase" / "sync_course_analysis_scope.sql"
 
 wb = load_workbook(SOURCE, data_only=True, read_only=True)
 export = wb["Export"]
@@ -57,6 +63,7 @@ def normalized_result(raw):
     result = str(raw).strip().upper()
     corrections = {
         "RESTRUTURAR": "REESTRUTURAR",
+        "FECHAR VIGÊNCIA": "FECHAR A VIGÊNCIA",
     }
     return corrections.get(result, result)
 
@@ -109,18 +116,105 @@ with open(OUTPUT, "w", encoding="utf-8", newline="\n") as handle:
 
 print(f"{len(courses)} cursos gravados em {OUTPUT}")
 
+course_scope = [
+    {
+        "code": item["code"],
+        "name": item["name"],
+        "creatorUnit": str(item["creator"]).strip(),
+        "isAnalyzable": str(item["creator"]).strip().upper() == "GED",
+    }
+    for item in courses
+]
+course_scope_json = json.dumps(course_scope, ensure_ascii=False, separators=(",", ":"))
+course_scope_sql = f"""-- Sincroniza o escopo de cursos que podem ser analisados.
+-- Regra vigente: somente Unidade criadora = GED.
+-- O script não apaga dados e pode ser executado novamente com segurança.
+
+begin;
+
+create table if not exists public.course_analysis_scope (
+  course_code text primary key,
+  course_name text not null,
+  creator_unit text not null,
+  is_analyzable boolean not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.course_analysis_scope enable row level security;
+
+drop policy if exists "Authenticated users view course analysis scope"
+on public.course_analysis_scope;
+create policy "Authenticated users view course analysis scope"
+on public.course_analysis_scope for select to authenticated
+using (true);
+
+drop policy if exists "Managers maintain course analysis scope"
+on public.course_analysis_scope;
+create policy "Managers maintain course analysis scope"
+on public.course_analysis_scope for all to authenticated
+using (public.current_user_role() in ('gestor', 'admin'))
+with check (public.current_user_role() in ('gestor', 'admin'));
+
+grant select, insert, update, delete on public.course_analysis_scope to authenticated;
+
+with source as (
+  select *
+  from jsonb_to_recordset($courses$
+{course_scope_json}
+$courses$::jsonb) as item(
+    code text,
+    name text,
+    "creatorUnit" text,
+    "isAnalyzable" boolean
+  )
+)
+insert into public.course_analysis_scope (
+  course_code,
+  course_name,
+  creator_unit,
+  is_analyzable,
+  updated_at
+)
+select
+  code,
+  name,
+  "creatorUnit",
+  "isAnalyzable",
+  now()
+from source
+on conflict (course_code) do update set
+  course_name = excluded.course_name,
+  creator_unit = excluded.creator_unit,
+  is_analyzable = excluded.is_analyzable,
+  updated_at = now();
+
+commit;
+
+select
+  count(*) as total_cursos,
+  count(*) filter (where is_analyzable) as cursos_ged_para_analise,
+  count(*) filter (where not is_analyzable) as cursos_fora_da_analise
+from public.course_analysis_scope;
+"""
+
+with open(COURSE_SCOPE_OUTPUT, "w", encoding="utf-8", newline="\n") as handle:
+    handle.write(course_scope_sql)
+
+print(f"script de escopo GED gravado em {COURSE_SCOPE_OUTPUT}")
+
 decision_wb = load_workbook(DECISIONS_SOURCE, data_only=True, read_only=True)
 decision_sheet = decision_wb.active
 decision_rows = decision_sheet.iter_rows(values_only=True)
 decision_headers = [cell for cell in next(decision_rows)]
 decision_index = {str(value).strip(): idx for idx, value in enumerate(decision_headers) if value}
 decisions = []
+contacts = []
 
 for order, row in enumerate(decision_rows, start=1):
     code = row[decision_index["Código do Curso"]]
     name = row[decision_index["Curso"]]
     result = row[decision_index["Situação do Curso"]]
-    if code in (None, "") or not name or not result:
+    if code in (None, "") or not name:
         continue
     code_key = str(int(code)) if isinstance(code, (int, float)) else str(code).strip()
     justification = row[decision_index["Justificativa"]] or ""
@@ -128,6 +222,30 @@ for order, row in enumerate(decision_rows, start=1):
     decision_type = row[decision_index["Tipo de Curso"]]
     decision_level = row[decision_index["Nível"]]
     decision_criterion = criterion(decision_type, decision_level)
+    contact_text = f"{justification} {observations}".upper()
+    if "CONVERSAR COM O COORDENADOR" in contact_text:
+        enrollment = enrollments[code_key]
+        contacts.append({
+            "sourceId": f"definicao-contato-{code_key}",
+            "code": code_key,
+            "name": str(name).strip().upper(),
+            "criterionKey": decision_criterion,
+            "criterion": (
+                "Critério FIC — Aperfeiçoamento, Especialização e Iniciação"
+                if decision_criterion == "fic"
+                else "Critério Regular / Qualificação"
+            ),
+            "units": sorted(enrollment["units"]),
+            "enrollments": {
+                "2023": enrollment[2023],
+                "2024": enrollment[2024],
+                "2025": enrollment[2025],
+            },
+            "reason": str(justification).strip(),
+            "observations": str(observations).strip(),
+        })
+    if not result:
+        continue
     decisions.append({
         "sourceId": f"definicao-{code_key}",
         "id": 800000000 + order,
@@ -162,6 +280,21 @@ $seed$::jsonb) as item(
   justification text,
   observations text,
   source text
+)"""
+contact_json = json.dumps(contacts, ensure_ascii=False, separators=(",", ":"))
+contact_relation = f"""select *
+from jsonb_to_recordset($contacts$
+{contact_json}
+$contacts$::jsonb) as item(
+  "sourceId" text,
+  code text,
+  name text,
+  "criterionKey" text,
+  criterion text,
+  units jsonb,
+  enrollments jsonb,
+  reason text,
+  observations text
 )"""
 seed_sql = f"""-- Carga inicial das decisões existentes
 -- Execute depois de schema.sql e da criação do primeiro administrador.
@@ -242,14 +375,91 @@ where not exists (
   select 1
   from public.evaluations existing
   where existing.state ->> 'sourceId' = seed."sourceId"
+     or (existing.course_code = seed.code and existing.status = 'concluida')
+);
+
+-- Inclui somente os contatos ainda ausentes. Contatos existentes, inclusive os
+-- já concluídos, permanecem intactos.
+with contacts as (
+{contact_relation}
+)
+insert into public.school_validations (
+  evaluation_id,
+  course_code,
+  course_name,
+  criterion_key,
+  criterion_label,
+  units,
+  enrollments,
+  reason_question,
+  decision_trail,
+  status,
+  notes,
+  created_by,
+  created_at,
+  updated_at
+)
+select
+  (
+    select evaluation.id
+    from public.evaluations evaluation
+    where evaluation.course_code = contacts.code
+    order by evaluation.updated_at desc
+    limit 1
+  ),
+  contacts.code,
+  contacts.name,
+  contacts."criterionKey",
+  contacts.criterion,
+  array(select jsonb_array_elements_text(contacts.units)),
+  contacts.enrollments,
+  'A escola tem uma justificativa técnica para manter o curso?',
+  jsonb_build_array(jsonb_build_object(
+    'sourceId', contacts."sourceId",
+    'source', 'Definição da Situação dos Cursos.xlsx',
+    'reason', contacts.reason
+  )),
+  'pendente',
+  nullif(contacts.observations, ''),
+  (select id from public.profiles where role = 'admin' order by created_at limit 1),
+  now(),
+  now()
+from contacts
+where not exists (
+  select 1
+  from public.school_validations existing
+  where existing.course_code = contacts.code
 );
 
 commit;
 
--- Conferência: o resultado esperado para a planilha atual é {len(decisions)}.
-select count(*) as decisoes_importadas
-from public.evaluations
-where state ->> 'imported' = 'true';
+-- Conferência das {len(decisions)} decisões preenchidas na planilha. O total
+-- considera tanto importações quanto análises já concluídas no sistema.
+with expected(code) as (
+  select value #>> '{{}}'
+  from jsonb_array_elements('{json.dumps([item["code"] for item in decisions])}'::jsonb)
+)
+select
+  count(*) filter (where exists (
+    select 1
+    from public.evaluations evaluation
+    where evaluation.course_code = expected.code
+      and evaluation.status = 'concluida'
+  )) as cursos_com_decisao_concluida,
+  {len(decisions)} as decisoes_esperadas
+from expected;
+
+-- Conferência: devem existir os {len(contacts)} cursos da planilha na central,
+-- contando os que já estavam cadastrados antes desta sincronização.
+with expected(code) as (
+  select value #>> '{{}}'
+  from jsonb_array_elements('{json.dumps([item["code"] for item in contacts])}'::jsonb)
+)
+select
+  count(*) as contatos_da_planilha_no_banco,
+  {len(contacts)} as contatos_esperados
+from public.school_validations validation
+where validation.course_code in (select code from expected);
 """
 
 with open(DECISIONS_SEED_OUTPUT, "w", encoding="utf-8", newline="\n") as handle:

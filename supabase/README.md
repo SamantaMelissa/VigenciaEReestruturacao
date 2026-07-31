@@ -66,12 +66,26 @@ window.SUPABASE_CONFIG = {
 Depois de criar o primeiro administrador, abra o SQL Editor e execute todo o
 arquivo `seed_initial_decisions.sql`.
 
-O script carrega as 52 decisões da planilha como avaliações concluídas. Ele
-pode ser executado novamente com segurança, porque o identificador de origem
-impede duplicações.
+O script sincroniza as decisões preenchidas da planilha como avaliações
+concluídas e inclui na Central de Validações os cursos marcados para contato
+com a escola. Ele pode ser executado novamente com segurança: registros
+importados são atualizados pelo identificador de origem, análises concluídas
+diretamente no sistema não são substituídas e contatos existentes não são
+duplicados.
 
 ## 7. Habilitar sincronização do aplicativo
 
 Se `schema.sql` foi executado antes da implementação da sincronização, execute
 uma vez o arquivo `enable_app_sync.sql`. Ele permite que cada avaliador remova
 somente os próprios rascunhos. Avaliações concluídas continuam protegidas.
+
+## 8. Sincronizar os cursos permitidos para análise
+
+Execute `sync_course_analysis_scope.sql` no SQL Editor. O script cria e
+atualiza o escopo de análise com base na coluna `Unidade criadora` da planilha
+T.I. Dados. Somente cursos com o valor exato `GED` ficam marcados como
+analisáveis. Cursos vinculados a CFP ou CT permanecem armazenados para
+histórico, mas ficam fora das novas análises.
+
+O script usa o código do curso como chave, não apaga registros e pode ser
+executado novamente quando a planilha for atualizada.

@@ -20,6 +20,7 @@
       <div class="top-actions">
         <a class="contact-nav" id="saved-analyses-link" href="#analises-salvas">Análises salvas</a>
         <a class="contact-nav manager-only" href="gestao.html">Painel gestor</a>
+        <a class="contact-nav manager-only" href="pendencias.html">Análises pendentes</a>
         <a class="contact-nav live-only" href="contatos.html">Central de validações <b id="contact-count">0</b></a>
       </div>
     </header>
@@ -32,7 +33,7 @@
           <p>Localize o curso, confirme as evidências e percorra o critério correto. O rastro de decisão é montado automaticamente.</p>
         </div>
         <div class="hero-stats" aria-label="Resumo da base">
-          <div><strong id="base-total">585</strong><span>cursos na base</span></div>
+          <div><strong id="base-total">253</strong><span>cursos GED para análise</span></div>
           <div><strong id="saved-total">0</strong><span>análises concluídas</span></div>
         </div>
       </section>
@@ -113,6 +114,16 @@
               <span class="section-kicker" id="question-context">CRITÉRIO OFICIAL</span>
               <h2 id="question-text"></h2>
               <div class="suggestion" id="data-suggestion"></div>
+              <div class="scenario-selector" id="scenario-selector" aria-label="Cenários mapeados">
+                <span>Selecione um ou mais cenários</span>
+                <div class="scenario-options">
+                  <button type="button" data-scenario="Desenvolvimento de software">Desenvolvimento de software</button>
+                  <button type="button" data-scenario="Redes e Infraestrutura">Redes e Infraestrutura</button>
+                  <button type="button" data-scenario="Segurança Cibernética">Segurança Cibernética</button>
+                  <button type="button" data-scenario="Cloud e Devops">Cloud e Devops</button>
+                  <button type="button" data-scenario="Dados">Dados</button>
+                </div>
+              </div>
               <label class="question-observation" id="question-observation">
                 <span>Observações</span>
                 <textarea id="question-observation-text" rows="3" placeholder="Registre quais tecnologias precisam ser incluídas ou retiradas..."></textarea>
@@ -165,7 +176,7 @@
       <div>
         <span class="section-kicker">ANÁLISE JÁ CONCLUÍDA</span>
         <h2 id="existing-analysis-title"></h2>
-        <p>Este curso já possui uma decisão registrada e não pode ser analisado novamente.</p>
+        <p>Este curso já possui uma decisão registrada. Abra o processo completo para consultar ou editar a avaliação, caso tenha permissão.</p>
         <div class="existing-analysis-result">
           <span>Decisão atual</span>
           <strong id="existing-analysis-result"></strong>
@@ -194,7 +205,10 @@
         </div>
       </div>
       <div class="history-justification" id="history-justification"></div>
-      <div class="history-modal-actions"><button class="btn primary" id="history-modal-ok">Fechar consulta</button></div>
+      <div class="history-modal-actions">
+        <button class="btn secondary" id="history-modal-edit">Editar avaliação</button>
+        <button class="btn primary" id="history-modal-ok">Fechar consulta</button>
+      </div>
     </div>
   </div>
   <script src="assets/data/courses-data.js"></script>

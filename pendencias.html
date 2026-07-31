@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#c1272c">
+  <title>Análises pendentes | Radar de Cursos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="brand-mark">S</span><span><strong>Radar de Cursos</strong><small>Decisão orientada por evidências</small></span></a>
+      <div class="top-actions">
+        <a class="contact-nav" href="gestao.html">Painel gestor</a>
+        <a class="contact-nav" href="contatos.html">Central de validações</a>
+        <a class="back-evaluation" href="index.html">← Voltar para avaliações</a>
+      </div>
+    </header>
+
+    <main class="pending-page">
+      <section class="pending-hero">
+        <div><span class="eyebrow">FILA DE TRABALHO</span><h1>Análises pendentes</h1><p>Cursos GED que ainda precisam passar pelo fluxo de decisão.</p></div>
+        <div class="pending-updated"><span>Atualização da lista</span><strong id="pending-updated">Carregando…</strong></div>
+      </section>
+
+      <section class="pending-content">
+        <div class="pending-kpis">
+          <article><span>TOTAL PENDENTE</span><strong id="pending-total">0</strong><small>cursos ainda não concluídos</small></article>
+          <article><span>NÃO INICIADAS</span><strong id="pending-new">0</strong><small>sem progresso salvo</small></article>
+          <article><span>EM ANDAMENTO</span><strong id="pending-progress">0</strong><small>com rascunho salvo</small></article>
+          <article><span>CONCLUÍDAS</span><strong id="pending-completed">0</strong><small>do escopo GED</small></article>
+        </div>
+
+        <section class="pending-panel">
+          <div class="pending-panel-head">
+            <div><span class="section-kicker">CURSOS A FAZER</span><h2>Fila de análises</h2><p>Use os filtros para organizar o trabalho da equipe.</p></div>
+            <div class="pending-filters">
+              <input id="pending-search" placeholder="Buscar curso ou código">
+              <select id="pending-filter">
+                <option value="todos">Todos os pendentes</option>
+                <option value="nao_iniciada">Não iniciadas</option>
+                <option value="em_andamento">Em andamento</option>
+              </select>
+            </div>
+          </div>
+          <div class="pending-list" id="pending-list"></div>
+        </section>
+      </section>
+    </main>
+    <footer><span>SENAI · Fábrica de Cursos</span><span>Fila de análises do escopo GED</span></footer>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="assets/data/courses-data.js"></script>
+  <script src="assets/js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase-service.js"></script>
+  <script src="assets/js/pendencias.js"></script>
+</body>
+</html>

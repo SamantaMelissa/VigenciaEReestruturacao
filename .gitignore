@@ -2,6 +2,7 @@
 # O courses-data.js gerado continua versionado e publicado no site.
 Dados/*
 !Dados/README.md
+/Definição da Situação dos Cursos.xlsx
 
 # Configurações e dependências locais
 .env

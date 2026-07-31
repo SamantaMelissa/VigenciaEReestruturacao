@@ -295,4 +295,11 @@ window.remoteDb = {
     if (error) throw error;
     return data || [];
   },
+  async analysisScope() {
+    const { data, error } = await window.supabaseClient
+      .from("course_analysis_scope")
+      .select("course_code,course_name,creator_unit,is_analyzable");
+    if (error) throw error;
+    return data || [];
+  },
 };
