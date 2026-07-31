@@ -17,6 +17,25 @@ DECISIONS_SEED_OUTPUT = ROOT / "supabase" / "seed_initial_decisions.sql"
 DECISIONS_FIX_OUTPUT = ROOT / "supabase" / "fix_initial_decision_criteria.sql"
 COURSE_SCOPE_OUTPUT = ROOT / "supabase" / "sync_course_analysis_scope.sql"
 
+
+def is_bright_red(cell):
+    fill = getattr(cell, "fill", None)
+    if fill is None:
+        return False
+    color = fill.fgColor
+    return (
+        fill.fill_type == "solid"
+        and color.type == "rgb"
+        and isinstance(color.rgb, str)
+        and color.rgb[-6:].upper() == "FF0000"
+    )
+
+
+def is_full_red_row(row):
+    # A planilha usa vermelho vivo na linha inteira para indicar curso fora da
+    # grade. Uma das 20 células pode estar vazia e sem preenchimento.
+    return sum(is_bright_red(cell) for cell in row) >= len(headers) - 1
+
 wb = load_workbook(SOURCE, data_only=True, read_only=True)
 export = wb["Export"]
 headers = [cell.value for cell in next(export.iter_rows())]
@@ -70,12 +89,16 @@ def normalized_result(raw):
 
 courses = []
 seen = set()
-for row in export.iter_rows(min_row=2, values_only=True):
+out_of_grid_codes = set()
+for cells in export.iter_rows(min_row=2):
+    row = tuple(cell.value for cell in cells)
     name = value(row, "Curso")
     code = value(row, "Código do Curso")
     if not name or code in (None, ""):
         continue
     code_key = str(int(code)) if isinstance(code, (int, float)) else str(code).strip()
+    if is_full_red_row(cells):
+        out_of_grid_codes.add(code_key)
     unique = (code_key, str(name).strip().upper())
     if unique in seen:
         continue
@@ -121,13 +144,16 @@ course_scope = [
         "code": item["code"],
         "name": item["name"],
         "creatorUnit": str(item["creator"]).strip(),
-        "isAnalyzable": str(item["creator"]).strip().upper() == "GED",
+        "isAnalyzable": (
+            str(item["creator"]).strip().upper() == "GED"
+            and item["code"] not in out_of_grid_codes
+        ),
     }
     for item in courses
 ]
 course_scope_json = json.dumps(course_scope, ensure_ascii=False, separators=(",", ":"))
 course_scope_sql = f"""-- Sincroniza o escopo de cursos que podem ser analisados.
--- Regra vigente: somente Unidade criadora = GED.
+-- Regra vigente: Unidade criadora = GED e linha não marcada inteiramente em vermelho.
 -- O script não apaga dados e pode ser executado novamente com segurança.
 
 begin;

@@ -120,6 +120,11 @@ python scripts/build_course_data.py
 
 O script atualiza `assets/data/courses-data.js`, utilizado pelo site estático. Quando houver mudanças no escopo de cursos ou decisões iniciais, revise também os arquivos SQL gerados antes de executá-los no Supabase.
 
+O escopo considera apenas cursos cuja **Unidade criadora** seja `GED`. Linhas
+inteiramente pintadas de vermelho vivo na aba `Export` são tratadas como cursos
+fora da grade e ficam indisponíveis para novas análises. Não é necessário
+manter uma lista manual de códigos.
+
 ## Execução local
 
 Como o projeto é estático, ele pode ser servido por qualquer servidor HTTP local. Exemplo:

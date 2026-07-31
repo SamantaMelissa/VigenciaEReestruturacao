@@ -84,8 +84,9 @@ somente os próprios rascunhos. Avaliações concluídas continuam protegidas.
 Execute `sync_course_analysis_scope.sql` no SQL Editor. O script cria e
 atualiza o escopo de análise com base na coluna `Unidade criadora` da planilha
 T.I. Dados. Somente cursos com o valor exato `GED` ficam marcados como
-analisáveis. Cursos vinculados a CFP ou CT permanecem armazenados para
-histórico, mas ficam fora das novas análises.
+analisáveis, exceto quando a linha inteira estiver pintada de vermelho vivo na
+aba `Export`. Cursos vinculados a CFP ou CT e cursos marcados em vermelho
+permanecem armazenados para histórico, mas ficam fora das novas análises.
 
 O script usa o código do curso como chave, não apaga registros e pode ser
 executado novamente quando a planilha for atualizada.
