@@ -2028,13 +2028,10 @@ footer {
   }
 }
 
-/* Escala equivalente a 125% em computadores; celulares mantêm escala nativa */
-@media (min-width: 901px) {
+/* Amplia em Full HD ou superior apenas quando o sistema/navegador está próximo de 100%. */
+@media (min-width: 1920px) and (min-height: 900px) and (max-resolution: 1.1dppx) {
   body {
     zoom: 1.25;
-  }
-  .shell {
-    max-width: 1536px;
   }
 }
 
