@@ -41,6 +41,7 @@ let selectedCourse=null,currentQuestion=1,answers=[],finalResult="",questionObse
 let existingAnalysis=null;
 let editingEvaluation=null;
 let activeHistoryId=null;
+let scenarioFixItem=null;
 let history=[];
 let contactQueue=[];
 let evaluationDrafts=[];
@@ -107,7 +108,13 @@ function buildDecisionNarrative(path,result,courseName,criterion,extraObservatio
       const scenarioDetail=item.scenarios?.length?`: ${item.scenarios.join(", ")}`:"";
       statements.push(`${statement}${scenarioDetail}.`);
     }
-    if(item.observation)statements.push(`Como complemento técnico, foi registrado: ${item.observation}.`);
+    if(item.answer===true&&normalize(item.text).includes("cenarios mapeados")&&!item.scenarios?.length)statements.push("O cenário específico não foi registrado.");
+    if(item.observation){
+      const itemText=normalize(item.text);
+      if(itemText.includes("tecnologia que necessita"))statements.push(`Para subsidiar a decisão, foram registradas as seguintes tecnologias para inclusão ou retirada: ${item.observation}.`);
+      else if(itemText.includes("justificativa tecnica"))statements.push(`A justificativa técnica registrada pela escola foi: ${item.observation}.`);
+      else statements.push(`Como complemento técnico, foi registrado: ${item.observation}.`);
+    }
   });
   const introduction=`A análise do curso ${courseName} foi conduzida conforme o ${criterion}.`;
   const evidence=statements.length?` ${statements.join(" ")}`:" Não há detalhamento suficiente do percurso na fonte original.";
@@ -143,12 +150,34 @@ function mapRemoteEvaluation(row){
   };
 }
 async function loadRemoteAppData(){
-  const [completed,drafts,validations,analysisScope]=await Promise.all([
+  const [completed,drafts,validations,analysisScope,answerEvidence]=await Promise.all([
     remoteDb.evaluations(["concluida"]),
     remoteDb.evaluations(["rascunho","em_analise"]),
     remoteDb.validations(),
-    remoteDb.analysisScope()
+    remoteDb.analysisScope(),
+    remoteDb.evaluationAnswers()
   ]);
+  const evidenceByEvaluation=new Map();
+  answerEvidence.forEach(row=>{
+    if(!evidenceByEvaluation.has(row.evaluation_id))evidenceByEvaluation.set(row.evaluation_id,new Map());
+    evidenceByEvaluation.get(row.evaluation_id).set(Number(row.question_step),row.evidence||{});
+  });
+  [...completed,...drafts].forEach(row=>{
+    const evidence=evidenceByEvaluation.get(row.id);if(!evidence)return;
+    const state={...(row.state||{})};
+    const path=state.decisionPath||state.answers||[];
+    state.decisionPath=path.map(step=>{
+      const savedEvidence=evidence.get(Number(step.step))||{};
+      return {
+        ...step,
+        scenarios:step.scenarios?.length?step.scenarios:(savedEvidence.scenarios||[]),
+        observation:step.observation||savedEvidence.observation||""
+      };
+    });
+    state.scenarioSelections={...(state.scenarioSelections||{})};
+    state.decisionPath.forEach(step=>{if(step.scenarios?.length)state.scenarioSelections[step.step]=step.scenarios});
+    row.state=state;
+  });
   history=completed.map(mapRemoteEvaluation);
   evaluationDrafts=drafts
     .filter(row=>row.created_by===appSession.user.id)
@@ -541,10 +570,11 @@ function openHistory(id){
   if(!processItems.length&&item.justification){
     processItems=parseImportedDecisionPath(item.justification);
   }
+  const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
   $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>`
     <div class="process-step">
       <span>${step.step||index+1}</span>
-      <div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.observation?`<p class="process-observation"><b>Registro complementar:</b> ${escapeHtml(step.observation)}</p>`:""}</div>
+      <div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.step===4&&step.answer===true&&!step.scenarios?.length?`<p class="process-scenarios missing"><b>Cenário não informado.</b>${canEdit?' <button type="button" id="history-scenario-edit">Informar cenário</button>':""}</p>`:""}${step.observation?`<p class="process-observation"><b>${normalize(step.text).includes("tecnologia que necessita")?"Tecnologias para inclusão ou retirada":"Registro complementar"}:</b> ${escapeHtml(step.observation)}</p>`:""}</div>
     </div>`).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
   const legacyQuestionnaire=/(^|\n)\s*(SIM|NÃO)\s+—/i.test(item.justification||"");
   const recordedScenarios=processItems.flatMap(step=>step.scenarios||[]);
@@ -557,9 +587,9 @@ function openHistory(id){
       <summary><span>Justificativa consolidada</span><small>Visualizar parecer</small></summary>
       <div><p>${escapeHtml(executiveJustification).replace(/\n/g,"<br>")}</p></div>
     </details>`;
-  const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
   $("history-modal-edit").hidden=!canEdit;
   $("history-modal").classList.add("open");$("history-modal").setAttribute("aria-hidden","false");
+  if($("history-scenario-edit"))$("history-scenario-edit").onclick=()=>editHistoryScenario(item);
 }
 function closeHistory(){activeHistoryId=null;$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true")}
 function editHistoryEvaluation(){
@@ -589,6 +619,43 @@ function editHistoryEvaluation(){
     showView("quiz-view",3);renderQuestion();
     toast("A avaliação importada não possui respostas detalhadas. Refaça o fluxo para atualizá-la.");
   }
+}
+function editHistoryScenario(item){
+  scenarioFixItem=item;
+  $("scenario-fix-options").querySelectorAll("button").forEach(button=>button.classList.toggle("selected",(item.scenarioSelections?.[4]||[]).includes(button.dataset.scenario)));
+  $("scenario-fix-save").disabled=!$("scenario-fix-options").querySelector(".selected");
+  $("scenario-fix-modal").classList.add("open");
+  $("scenario-fix-modal").setAttribute("aria-hidden","false");
+}
+function closeScenarioFix(){
+  scenarioFixItem=null;
+  $("scenario-fix-modal").classList.remove("open");
+  $("scenario-fix-modal").setAttribute("aria-hidden","true");
+}
+async function saveHistoryScenario(){
+  if(!scenarioFixItem?.remoteId)return;
+  const selected=[...$("scenario-fix-options").querySelectorAll("button.selected")].map(button=>button.dataset.scenario);
+  if(!selected.length){toast("Selecione ao menos um cenário.");return}
+  const button=$("scenario-fix-save");button.disabled=true;button.textContent="Salvando...";
+  const item=scenarioFixItem;
+  const path=(item.decisionPath||[]).map(step=>Number(step.step)===4?{...step,scenarios:selected}:step);
+  const state={...(item.rawState||{}),decisionPath:path,scenarioSelections:{...(item.scenarioSelections||{}),4:selected},editedAt:new Date().toISOString()};
+  const justification=buildDecisionNarrative(path,item.result,item.name,item.criterion,item.observations);
+  try{
+    const question=path.find(step=>Number(step.step)===4);
+    const {error:answerError}=await supabaseClient.from("evaluation_answers").upsert({
+      evaluation_id:item.remoteId,question_step:4,question_text:question?.text||"O curso responde a um dos cenários mapeados?",answer:true,
+      source:"usuario",answered_by:appSession.user.id,evidence:{scenarios:selected}
+    },{onConflict:"evaluation_id,question_step"});
+    if(answerError)throw answerError;
+    const {data,error}=await supabaseClient.from("evaluations").update({state,justification}).eq("id",item.remoteId).select().single();
+    if(error)throw error;
+    const updated=mapRemoteEvaluation(data);
+    history=history.map(entry=>String(entry.remoteId)===String(item.remoteId)?updated:entry);
+    closeScenarioFix();renderHistory();openHistory(updated.id);
+    toast("Cenário salvo na avaliação.");
+  }catch(error){if(!handleSupabaseError(error))toast("Não foi possível salvar o cenário. Tente novamente.")}
+  finally{button.textContent="Salvar cenário";button.disabled=false}
 }
 function exportCsv(){
   if(!history.length){toast("Não há registros para exportar.");return}
@@ -731,7 +798,7 @@ $("save-progress").onclick=saveDraft;
 $("question-observation-text").oninput=event=>{
   questionObservations[currentQuestion]=event.target.value;
 };
-document.querySelectorAll("[data-scenario]").forEach(button=>button.onclick=()=>{
+document.querySelectorAll(".scenario-options [data-scenario]").forEach(button=>button.onclick=()=>{
   const selected=new Set(scenarioSelections[currentQuestion]||[]);
   if(selected.has(button.dataset.scenario))selected.delete(button.dataset.scenario);
   else selected.add(button.dataset.scenario);
@@ -746,6 +813,14 @@ $("history-search").oninput=renderHistory;$("export-csv").onclick=exportCsv;
 $("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;
 $("history-modal-edit").onclick=editHistoryEvaluation;
 $("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
+$("scenario-fix-options").querySelectorAll("button").forEach(button=>button.onclick=()=>{
+  button.classList.toggle("selected");
+  $("scenario-fix-save").disabled=!$("scenario-fix-options").querySelector(".selected");
+});
+$("scenario-fix-save").onclick=saveHistoryScenario;
+$("scenario-fix-close").onclick=closeScenarioFix;
+$("scenario-fix-cancel").onclick=closeScenarioFix;
+$("scenario-fix-modal").onclick=event=>{if(event.target===$("scenario-fix-modal"))closeScenarioFix()};
 $("existing-analysis-close").onclick=()=>{
   existingAnalysis=null;
   $("existing-analysis-modal").classList.remove("open");

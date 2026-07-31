@@ -47,8 +47,8 @@ async function initializePending(){
       .filter(item=>!completedCodes.has(String(item.course_code)))
       .map(item=>({...item,status:draftCodes.has(String(item.course_code))?"em_andamento":"nao_iniciada",canResume:ownDraftCodes.has(String(item.course_code))}))
       .sort((a,b)=>{
-        const order={nao_iniciada:0,em_andamento:1};
-        return order[a.status]-order[b.status]||a.course_name.localeCompare(b.course_name,"pt-BR");
+        const priority=item=>item.status==="em_andamento"&&item.canResume?0:item.status==="em_andamento"?1:2;
+        return priority(a)-priority(b)||a.course_name.localeCompare(b.course_name,"pt-BR");
       });
     $("pending-total").textContent=pendingCourses.length.toLocaleString("pt-BR");
     $("pending-new").textContent=pendingCourses.filter(item=>item.status==="nao_iniciada").length.toLocaleString("pt-BR");

@@ -302,4 +302,11 @@ window.remoteDb = {
     if (error) throw error;
     return data || [];
   },
+  async evaluationAnswers() {
+    const { data, error } = await window.supabaseClient
+      .from("evaluation_answers")
+      .select("evaluation_id,question_step,evidence");
+    if (error) throw error;
+    return data || [];
+  },
 };

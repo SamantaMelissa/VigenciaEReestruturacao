@@ -211,6 +211,26 @@
       </div>
     </div>
   </div>
+  <div class="scenario-fix-modal" id="scenario-fix-modal" aria-hidden="true">
+    <div class="scenario-fix-card" role="dialog" aria-modal="true" aria-labelledby="scenario-fix-title">
+      <div class="scenario-fix-head">
+        <div><span>COMPLEMENTAR AVALIAÇÃO</span><h2 id="scenario-fix-title">Informe o cenário mapeado</h2></div>
+        <button type="button" id="scenario-fix-close" aria-label="Fechar">×</button>
+      </div>
+      <p>Selecione um ou mais cenários relacionados ao curso. A alteração será salva diretamente nesta avaliação.</p>
+      <div class="scenario-fix-options" id="scenario-fix-options">
+        <button type="button" data-scenario="Desenvolvimento de software">Desenvolvimento de software</button>
+        <button type="button" data-scenario="Redes e Infraestrutura">Redes e Infraestrutura</button>
+        <button type="button" data-scenario="Segurança Cibernética">Segurança Cibernética</button>
+        <button type="button" data-scenario="Cloud e Devops">Cloud e Devops</button>
+        <button type="button" data-scenario="Dados">Dados</button>
+      </div>
+      <div class="scenario-fix-actions">
+        <button class="btn secondary" type="button" id="scenario-fix-cancel">Cancelar</button>
+        <button class="btn primary" type="button" id="scenario-fix-save" disabled>Salvar cenário</button>
+      </div>
+    </div>
+  </div>
   <script src="assets/data/courses-data.js"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
