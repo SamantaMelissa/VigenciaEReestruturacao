@@ -3372,15 +3372,18 @@ body {
 }
 .pending-list {
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin-top: 16px;
 }
 .pending-item {
   display: grid;
-  grid-template-columns: 90px minmax(220px, 1fr) 120px 145px;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  grid-template-rows: minmax(42px, auto) auto;
   align-items: center;
-  gap: 15px;
-  padding: 14px 15px;
+  gap: 10px 12px;
+  min-height: 125px;
+  padding: 15px;
   border: 1px solid #e1e1e1;
   border-left: 4px solid #777777;
   background: #ffffff;
@@ -3432,6 +3435,15 @@ body {
   font-weight: 800;
   text-transform: uppercase;
 }
+.pending-item .pending-status {
+  grid-column: 1 / 3;
+  grid-row: 2;
+}
+.pending-item .pending-action {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  min-width: 132px;
+}
 .em_andamento .pending-status {
   background: #fff0ce;
   color: #805b00;
@@ -3476,17 +3488,26 @@ body {
 }
 .pending-action.ready:hover { background: #105c3e; }
 .pending-action.ready:disabled { opacity: .65; cursor: wait; }
+@media (max-width: 1180px) {
+  .pending-list {
+    grid-template-columns: 1fr;
+  }
+  .pending-item {
+    min-height: auto;
+  }
+}
 @media (max-width: 900px) {
   .pending-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .pending-item {
     grid-template-columns: 80px minmax(0, 1fr) 130px;
+    grid-template-rows: auto auto;
   }
-  .pending-status {
+  .pending-item .pending-status {
     grid-column: 2;
   }
-  .pending-action {
+  .pending-item .pending-action {
     grid-column: 3;
     grid-row: 1 / span 2;
   }
@@ -3511,12 +3532,14 @@ body {
   }
   .pending-item {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
     gap: 9px;
   }
-  .pending-status,
-  .pending-action {
+  .pending-item .pending-status,
+  .pending-item .pending-action {
     grid-column: 1;
     grid-row: auto;
+    min-width: 0;
   }
   .pending-action {
     min-height: 42px;
