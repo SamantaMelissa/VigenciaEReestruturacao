@@ -103,8 +103,10 @@ function buildDecisionNarrative(path,result,courseName,criterion,extraObservatio
   const statements=[];
   (path||[]).forEach(item=>{
     const statement=decisionStatement(item);
-    if(statement)statements.push(`${statement}.`);
-    if(item.scenarios?.length)statements.push(`Os cenários selecionados foram ${item.scenarios.join(", ")}.`);
+    if(statement){
+      const scenarioDetail=item.scenarios?.length?`: ${item.scenarios.join(", ")}`:"";
+      statements.push(`${statement}${scenarioDetail}.`);
+    }
     if(item.observation)statements.push(`Como complemento técnico, foi registrado: ${item.observation}.`);
   });
   const introduction=`A análise do curso ${courseName} foi conduzida conforme o ${criterion}.`;
@@ -532,7 +534,10 @@ function openHistory(id){
     <div><span>Origem</span><strong>${escapeHtml(item.source||"Avaliação do sistema")}</strong></div>
     <div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div>
     <div><span>Unidades ofertantes</span><strong>${units&&units.length?units.map(formatUnitCode).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
-  let processItems=item.decisionPath||[];
+  let processItems=(item.decisionPath||[]).map(step=>({
+    ...step,
+    scenarios:step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[])
+  }));
   if(!processItems.length&&item.justification){
     processItems=parseImportedDecisionPath(item.justification);
   }
@@ -542,7 +547,9 @@ function openHistory(id){
       <div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.observation?`<p class="process-observation"><b>Registro complementar:</b> ${escapeHtml(step.observation)}</p>`:""}</div>
     </div>`).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
   const legacyQuestionnaire=/(^|\n)\s*(SIM|NÃO)\s+—/i.test(item.justification||"");
-  const executiveJustification=(item.sourceId||legacyQuestionnaire)
+  const recordedScenarios=processItems.flatMap(step=>step.scenarios||[]);
+  const justificationMissingScenario=recordedScenarios.some(scenario=>!normalize(item.justification).includes(normalize(scenario)));
+  const executiveJustification=(item.sourceId||legacyQuestionnaire||justificationMissingScenario)
     ?buildDecisionNarrative(processItems,item.result,item.name,item.criterion,item.observations)
     :(item.justification||buildDecisionNarrative(processItems,item.result,item.name,item.criterion,item.observations));
   $("history-justification").innerHTML=`

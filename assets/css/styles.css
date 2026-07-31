@@ -3283,6 +3283,14 @@ body {
 .pending-action:hover {
   background: #961e22;
 }
+.pending-item.em_andamento .pending-action:not(.unavailable) {
+  background: #d99400;
+  color: #241900;
+}
+.pending-item.em_andamento .pending-action:not(.unavailable):hover {
+  background: #b77d00;
+  color: #ffffff;
+}
 .pending-action.unavailable {
   background: #eeeeee;
   color: #777777;
