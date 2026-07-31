@@ -1,5 +1,6 @@
 let contactQueue=[];
 let activeContactId=null;
+let savingReturn=false;
 const COURSES=window.COURSES_DATA||[];
 const $=id=>document.getElementById(id);
 const normalize=text=>(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
@@ -67,28 +68,25 @@ function updateReturnButton(){
   $("contact-return").disabled=!answered;
 }
 async function saveAndReturn(){
+  if(savingReturn)return;
   const item=contactQueue.find(entry=>entry.id===activeContactId);if(!item)return;
   const answer=$("contact-answer").value;if(!["sim","nao"].includes(answer))return;
-  const positive=answer==="sim",contactPayload={...formPayload(),status:"concluido"};
-  const {error:contactError}=await supabaseClient.from("school_validations").update(contactPayload).eq("id",item.id);
-  if(contactError){if(!handleSupabaseError(contactError))toast("Não foi possível concluir o contato.");return}
-  const next=item.criterion_key==="fic"?(positive?6:"FECHAR A VIGÊNCIA"):(positive?7:6);
-  const trail=[...(item.decision_trail||[]).filter(entry=>entry.step!==5),{step:5,answer:positive,text:item.reason_question}];
-  const course=COURSES.find(entry=>entry.code===item.course_code);
-  const evaluationPayload={
-    course_code:item.course_code,course_name:item.course_name,criterion_key:item.criterion_key,
-    criterion_label:item.criterion_label,status:"rascunho",current_question:typeof next==="number"?next:5,
-    final_result:typeof next==="string"?next:null,created_by:appSession.user.id,
-    state:{answers:trail,enrollments:item.enrollments||{},units:item.units||[],returnedFromContact:true}
-  };
-  const {data:existing}=await supabaseClient.from("evaluations").select("id")
-    .eq("course_code",item.course_code).eq("created_by",appSession.user.id).in("status",["rascunho","em_analise"]).maybeSingle();
-  const operation=existing
-    ?supabaseClient.from("evaluations").update(evaluationPayload).eq("id",existing.id)
-    :supabaseClient.from("evaluations").insert(evaluationPayload);
-  const {error:evaluationError}=await operation;
-  if(evaluationError){if(!handleSupabaseError(evaluationError))toast("Contato salvo, mas não foi possível preparar o retorno.");return}
-  location.href=`index.html?retomar=${encodeURIComponent(item.course_code)}`;
+  savingReturn=true;const returnButton=$("contact-return"),returnLabel=returnButton.textContent;
+  returnButton.disabled=true;returnButton.textContent="Salvando...";
+  try{
+    const positive=answer==="sim",contactPayload={...formPayload(),status:"concluido"};
+    const {error:contactError}=await supabaseClient.from("school_validations").update(contactPayload).eq("id",item.id);
+    if(contactError){if(!handleSupabaseError(contactError))toast("Não foi possível concluir o contato.");return}
+    const trail=[...(item.decision_trail||[]).filter(entry=>entry.step!==5),{step:5,answer:positive,text:item.reason_question}];
+    const {data:result,error:evaluationError}=await supabaseClient.rpc("apply_school_validation_return",{
+      p_validation_id:item.id,p_positive:positive,p_trail:trail
+    });
+    if(evaluationError){if(!handleSupabaseError(evaluationError))toast("Contato salvo, mas não foi possível preparar o retorno.");return}
+    if(positive)location.href=`index.html?retomar=${encodeURIComponent(item.course_code)}`;
+    else location.href=`index.html?historico=${encodeURIComponent(result?.[0]?.evaluation_id||"")}`;
+  }finally{
+    savingReturn=false;returnButton.textContent=returnLabel;updateReturnButton();
+  }
 }
 async function deleteContact(){
   if(!activeContactId)return;

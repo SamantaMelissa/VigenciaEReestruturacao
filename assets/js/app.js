@@ -939,6 +939,8 @@ async function initializeApp(){
     if(resumeFromContact&&evaluationDrafts.some(draft=>draft.code===resumeFromContact))resumeDraft(resumeFromContact);
     const courseToAnalyze=parameters.get("analisar");
     if(courseToAnalyze&&analysisScopeCodes.has(String(courseToAnalyze)))selectCourse(courseToAnalyze);
+    const historyToOpen=parameters.get("historico");
+    if(historyToOpen&&history.some(item=>String(item.id)===String(historyToOpen)))openHistory(historyToOpen);
   }catch(error){
     handleSupabaseError(error);
     showSystemUnavailable();
