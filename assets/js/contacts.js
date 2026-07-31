@@ -1,6 +1,6 @@
 let contactQueue=[];
 let activeContactId=null;
-let savingReturn=false;
+let savingContact=false;
 const COURSES=window.COURSES_DATA||[];
 const $=id=>document.getElementById(id);
 const normalize=text=>(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
@@ -46,7 +46,7 @@ function openContact(id){
   $("contact-unit").value=validationUnit(item);
   $("contact-date").value=item.contact_date||"";$("contact-notes").value=item.notes||"";
   $("contact-answer").value=item.school_answer===true?"sim":item.school_answer===false?"nao":"";
-  updateReturnButton();$("contact-modal").classList.add("open");$("contact-modal").setAttribute("aria-hidden","false");
+  updateAnswerStatus();$("contact-modal").classList.add("open");$("contact-modal").setAttribute("aria-hidden","false");
 }
 
 function closeContact(){$("contact-modal").classList.remove("open");$("contact-modal").setAttribute("aria-hidden","true");activeContactId=null}
@@ -61,36 +61,27 @@ function formPayload(){
   };
 }
 async function saveContact(){
-  if(!activeContactId)return;
-  const {data,error}=await supabaseClient.from("school_validations").update(formPayload()).eq("id",activeContactId).select().single();
-  if(error){if(!handleSupabaseError(error))toast("Não foi possível salvar o acompanhamento.");return}
-  contactQueue=contactQueue.map(item=>item.id===data.id?data:item);render();closeContact();toast("Acompanhamento salvo no banco compartilhado.");
+  if(!activeContactId||savingContact)return;
+  const item=contactQueue.find(entry=>entry.id===activeContactId);if(!item)return;
+  const button=$("contact-save"),label=button.textContent;
+  savingContact=true;button.disabled=true;button.textContent="Salvando...";
+  try{
+    const {data,error}=await supabaseClient.from("school_validations").update(formPayload()).eq("id",activeContactId).select().single();
+    if(error){if(!handleSupabaseError(error))toast("Não foi possível salvar o acompanhamento.");return}
+    if(typeof data.school_answer==="boolean"){
+      const trail=[...(item.decision_trail||[]).filter(entry=>entry.step!==5),{step:5,answer:data.school_answer,text:item.reason_question}];
+      const {error:evaluationError}=await supabaseClient.rpc("apply_school_validation_return",{p_validation_id:item.id,p_positive:data.school_answer,p_trail:trail});
+      if(evaluationError){if(!handleSupabaseError(evaluationError))toast("Contato salvo, mas não foi possível encaminhar a avaliação.");return}
+    }
+    contactQueue=contactQueue.map(entry=>entry.id===data.id?data:entry);render();closeContact();
+    toast(data.school_answer===true?"Retorno positivo salvo. A análise está disponível para a equipe.":data.school_answer===false?"Retorno salvo e avaliação concluída como fechamento de vigência.":"Acompanhamento salvo no banco compartilhado.");
+  }finally{
+    savingContact=false;button.disabled=false;button.textContent=label;
+  }
 }
-function updateReturnButton(){
+function updateAnswerStatus(){
   const answered=["sim","nao"].includes($("contact-answer").value);
   if(answered)$("contact-status").value="concluido";
-  $("contact-return").disabled=!answered;
-}
-async function saveAndReturn(){
-  if(savingReturn)return;
-  const item=contactQueue.find(entry=>entry.id===activeContactId);if(!item)return;
-  const answer=$("contact-answer").value;if(!["sim","nao"].includes(answer))return;
-  savingReturn=true;const returnButton=$("contact-return"),returnLabel=returnButton.textContent;
-  returnButton.disabled=true;returnButton.textContent="Salvando...";
-  try{
-    const positive=answer==="sim",contactPayload={...formPayload(),status:"concluido"};
-    const {error:contactError}=await supabaseClient.from("school_validations").update(contactPayload).eq("id",item.id);
-    if(contactError){if(!handleSupabaseError(contactError))toast("Não foi possível concluir o contato.");return}
-    const trail=[...(item.decision_trail||[]).filter(entry=>entry.step!==5),{step:5,answer:positive,text:item.reason_question}];
-    const {data:result,error:evaluationError}=await supabaseClient.rpc("apply_school_validation_return",{
-      p_validation_id:item.id,p_positive:positive,p_trail:trail
-    });
-    if(evaluationError){if(!handleSupabaseError(evaluationError))toast("Contato salvo, mas não foi possível preparar o retorno.");return}
-    if(positive)location.href=`index.html?retomar=${encodeURIComponent(item.course_code)}`;
-    else location.href=`index.html?historico=${encodeURIComponent(result?.[0]?.evaluation_id||"")}`;
-  }finally{
-    savingReturn=false;returnButton.textContent=returnLabel;updateReturnButton();
-  }
 }
 async function deleteContact(){
   if(!activeContactId)return;
@@ -102,7 +93,7 @@ function toast(text){$("toast").textContent=text;$("toast").classList.add("show"
 
 $("contact-search").oninput=render;$("contact-filter").onchange=()=>{$("completed-validations").open=$("contact-filter").value==="concluido";render()};$("contact-modal-close").onclick=closeContact;
 $("contact-save").onclick=saveContact;$("contact-delete").onclick=deleteContact;$("contact-modal").onclick=event=>{if(event.target===$("contact-modal"))closeContact()};
-$("contact-answer").onchange=updateReturnButton;$("contact-return").onclick=saveAndReturn;
+$("contact-answer").onchange=updateAnswerStatus;
 
 async function initializeContacts(){
   try{

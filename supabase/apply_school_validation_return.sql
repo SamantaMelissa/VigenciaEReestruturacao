@@ -66,7 +66,8 @@ begin
         'decisionPath', coalesce(p_trail, '[]'::jsonb),
         'enrollments', validation.enrollments,
         'units', validation.units,
-        'returnedFromContact', true
+        'returnedFromContact', true,
+        'validationReady', p_positive
       ),
       auth.uid(), case when p_positive then null else now() end
     ) returning * into target_evaluation;
@@ -77,13 +78,13 @@ begin
         final_result = calculated_result,
         justification = calculated_justification,
         completed_at = case when p_positive then null else now() end,
-        created_by = auth.uid(),
         state = coalesce(state, '{}'::jsonb) || jsonb_build_object(
           'answers', coalesce(p_trail, '[]'::jsonb),
           'decisionPath', coalesce(p_trail, '[]'::jsonb),
           'enrollments', validation.enrollments,
           'units', validation.units,
-          'returnedFromContact', true
+          'returnedFromContact', true,
+          'validationReady', p_positive
         )
     where id = target_evaluation.id
     returning * into target_evaluation;

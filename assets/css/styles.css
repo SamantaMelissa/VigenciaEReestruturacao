@@ -2203,10 +2203,6 @@ footer {
     font-size: 28px;
   }
 }
-.contact-return:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 .contact-modal-actions {
   flex-wrap: wrap;
 }
@@ -3313,6 +3309,32 @@ body {
   background: #ffffff;
   border: 1px solid var(--line);
 }
+.pending-ready-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 13px 15px;
+  border: 1px solid #b9ddcf;
+  border-left: 4px solid #197653;
+  background: #f0faf6;
+  color: #205c47;
+}
+.pending-ready-alert[hidden] { display: none; }
+.pending-ready-alert > span {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border-radius: 50%;
+  background: #197653;
+  color: #ffffff;
+  font-weight: 900;
+}
+.pending-ready-alert strong,
+.pending-ready-alert small { display: block; }
+.pending-ready-alert strong { font-size: 10px; }
+.pending-ready-alert small { margin-top: 2px; font-size: 8px; }
 .pending-panel-head {
   display: flex;
   align-items: flex-end;
@@ -3367,6 +3389,10 @@ body {
   border-left-color: var(--amber);
   background: #fffdf8;
 }
+.pending-item.retorno_disponivel {
+  border-left-color: #197653;
+  background: #f7fcfa;
+}
 .pending-item-code span,
 .pending-item-code strong,
 .pending-item-main strong,
@@ -3410,6 +3436,10 @@ body {
   background: #fff0ce;
   color: #805b00;
 }
+.retorno_disponivel .pending-status {
+  background: #dcefe7;
+  color: #155d43;
+}
 .pending-action {
   justify-self: stretch;
   padding: 9px 10px;
@@ -3419,6 +3449,9 @@ body {
   font-weight: 800;
   text-align: center;
   text-decoration: none;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
 }
 .pending-action:hover {
   background: #961e22;
@@ -3436,6 +3469,13 @@ body {
   color: #777777;
   cursor: default;
 }
+.pending-action.ready,
+.pending-item.retorno_disponivel .pending-action.ready {
+  background: #197653;
+  color: #ffffff;
+}
+.pending-action.ready:hover { background: #105c3e; }
+.pending-action.ready:disabled { opacity: .65; cursor: wait; }
 @media (max-width: 900px) {
   .pending-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));

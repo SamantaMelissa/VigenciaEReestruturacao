@@ -19,14 +19,16 @@ create unique index if not exists evaluations_one_active_per_course_idx
 on public.evaluations(course_code)
 where status in ('rascunho', 'em_analise');
 
-create or replace function public.list_active_evaluation_claims()
-returns table(course_code text, created_by uuid, status public.evaluation_status, updated_at timestamptz)
+drop function if exists public.list_active_evaluation_claims();
+create function public.list_active_evaluation_claims()
+returns table(course_code text, created_by uuid, status public.evaluation_status, updated_at timestamptz, available_for_claim boolean)
 language sql
 stable
 security definer
 set search_path = public
 as $$
-  select evaluation.course_code, evaluation.created_by, evaluation.status, evaluation.updated_at
+  select evaluation.course_code, evaluation.created_by, evaluation.status, evaluation.updated_at,
+    lower(coalesce(evaluation.state ->> 'validationReady', 'false')) = 'true'
   from public.evaluations evaluation
   where evaluation.status in ('rascunho', 'em_analise');
 $$;

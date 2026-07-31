@@ -314,4 +314,11 @@ window.remoteDb = {
     if (error) throw error;
     return data || [];
   },
+  async claimReadyEvaluation(courseCode) {
+    const { data, error } = await window.supabaseClient.rpc("claim_ready_evaluation", {
+      p_course_code: String(courseCode),
+    });
+    if (error) throw error;
+    return data;
+  },
 };

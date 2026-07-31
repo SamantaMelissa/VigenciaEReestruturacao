@@ -36,13 +36,15 @@
           <article><span>CONCLUÍDAS</span><strong id="pending-completed">0</strong><small>do escopo GED</small></article>
         </div>
 
-        <section class="pending-panel">
-          <div class="pending-panel-head">
+      <section class="pending-panel">
+        <div class="pending-ready-alert" id="pending-ready-alert" hidden><span>!</span><div><strong id="pending-ready-title"></strong><small>Retornos positivos das unidades estão prontos para continuidade.</small></div></div>
+        <div class="pending-panel-head">
             <div><span class="section-kicker">CURSOS A FAZER</span><h2>Fila de análises</h2><p>Use os filtros para organizar o trabalho da equipe.</p></div>
             <div class="pending-filters">
               <input id="pending-search" placeholder="Buscar curso ou código">
               <select id="pending-filter">
                 <option value="todos">Todos os pendentes</option>
+                <option value="retorno_disponivel">Retornos disponíveis</option>
                 <option value="nao_iniciada">Não iniciadas</option>
                 <option value="em_andamento">Em andamento</option>
               </select>
