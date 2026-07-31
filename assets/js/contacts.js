@@ -5,12 +5,13 @@ const $=id=>document.getElementById(id);
 const normalize=text=>(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const escapeHtml=text=>String(text??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const formatUnitCode=code=>{const digits=String(code??"").replace(/\D/g,"");return digits.length===3?`${digits[0]}.${digits.slice(1)}`:String(code??"")};
+const validationUnit=item=>item.contacted_unit||((item.units||[])[0]?formatUnitCode(item.units[0]):"");
 const statusLabel=status=>status==="em_contato"?"Em contato":status==="concluido"?"Concluído":"Pendente";
 
 function render(){
   const q=normalize($("contact-search").value),filter=$("contact-filter").value;
   const items=contactQueue.filter(item=>
-    normalize(`${item.course_code} ${item.course_name} ${(item.units||[]).join(" ")}`).includes(q)&&
+    normalize(`${item.course_code} ${item.course_name} ${validationUnit(item)}`).includes(q)&&
     (filter==="todos"||item.status===filter)
   );
   const count=status=>contactQueue.filter(item=>item.status===status).length;
@@ -19,7 +20,7 @@ function render(){
     <article class="contact-item" data-contact-id="${item.id}">
       <span class="contact-item-icon">☎</span>
       <div><strong>${escapeHtml(item.course_name)}</strong><small>Código ${item.course_code} · ${escapeHtml(item.criterion_label)}</small></div>
-      <span class="contact-units">Unidades: ${(item.units||[]).length?item.units.map(formatUnitCode).map(escapeHtml).join(", "):"não identificadas"}</span>
+      <span class="contact-units">Unidade: ${validationUnit(item)?escapeHtml(validationUnit(item)):"não informada"}</span>
       <span class="contact-status ${item.status}">${statusLabel(item.status)}</span>
     </article>`).join(""):`<div class="contact-empty"><strong>Nenhuma pendência encontrada</strong><br>Os cursos que exigirem contato com uma unidade aparecerão aqui automaticamente.</div>`;
   document.querySelectorAll("[data-contact-id]").forEach(card=>card.onclick=()=>openContact(card.dataset.contactId));
@@ -32,12 +33,12 @@ function openContact(id){
   const enrollmentRows=Object.entries(item.enrollments||{}).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · ");
   $("contact-evidence").innerHTML=`
     <div class="dossier-block"><span>Motivo da validação</span><strong>${escapeHtml(item.reason_question)}</strong></div>
-    <div class="dossier-block"><span>Unidades identificadas</span><strong>${(item.units||[]).length?item.units.map(formatUnitCode).map(escapeHtml).join(", "):"Nenhuma unidade localizada"}</strong></div>
+    <div class="dossier-block"><span>Unidade</span><strong>${validationUnit(item)?escapeHtml(validationUnit(item)):"Não informada"}</strong></div>
     <div class="dossier-block"><span>Matrículas evidenciadas</span><p>${escapeHtml(enrollmentRows)}</p></div>
     <div class="dossier-block"><span>Critério aplicado</span><p>${escapeHtml(item.criterion_label)}</p></div>
     <div class="dossier-block"><span>Caminho percorrido</span><div class="dossier-trail">${(item.decision_trail||[]).map(a=>`<i>P${a.step}: ${a.answer?"SIM":"NÃO"}</i>`).join("")||"<i>Início do fluxo</i>"}</div></div>`;
   $("contact-status").value=item.status||"pendente";$("contact-owner").value=item.responsible_name||"";
-  $("contact-unit").value=item.contacted_unit||((item.units||[])[0]?formatUnitCode(item.units[0]):"");
+  $("contact-unit").value=validationUnit(item);
   $("contact-date").value=item.contact_date||"";$("contact-notes").value=item.notes||"";
   $("contact-answer").value=item.school_answer===true?"sim":item.school_answer===false?"nao":"";
   updateReturnButton();$("contact-modal").classList.add("open");$("contact-modal").setAttribute("aria-hidden","false");
