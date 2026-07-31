@@ -72,6 +72,47 @@ function parseImportedDecisionPath(justification){
   });
   return grouped.map((text,index)=>({step:index+1,text,answer:null}));
 }
+function decisionStatement(item){
+  if(typeof item.answer!=="boolean"){
+    const source=String(item.text||"").replace(/[;?]+$/g,"").trim().toLocaleLowerCase("pt-BR")
+      .replace(/\b(fic|cbo|ia|iot|cnct|uc|ucs)\b/gi,value=>value.toLocaleUpperCase("pt-BR"));
+    return source?source.charAt(0).toLocaleUpperCase("pt-BR")+source.slice(1):"";
+  }
+  const text=normalize(item.text);
+  const yes=item.answer;
+  let statement;
+  if(text.includes("oferta continua"))statement=yes?"Foi confirmada oferta contínua no período analisado":"Não foi confirmada oferta contínua em todo o período analisado";
+  else if(text.includes("oferta do curso em algum"))statement=yes?"Há registro de oferta em pelo menos um dos anos considerados":"Não há registro de oferta nos anos considerados";
+  else if(text.includes("mais de uma escola"))statement=yes?"O título é ofertado por mais de uma escola":"O título possui oferta registrada em somente uma escola";
+  else if(text.includes("cenarios mapeados"))statement=yes?"O curso está relacionado aos cenários estratégicos mapeados":"O curso não foi relacionado aos cenários estratégicos mapeados";
+  else if(text.includes("justificativa tecnica"))statement=yes?"A escola apresentou justificativa técnica para a manutenção do curso":"A escola não apresentou justificativa técnica suficiente para a manutenção do curso";
+  else if(text.includes("empregabilidade"))statement=yes?"As ocupações relacionadas apresentam empregabilidade no mapa de emprego":"Não foi identificada empregabilidade suficiente para as ocupações relacionadas";
+  else if(text.includes("sem perfil profissional"))statement=yes?"A qualificação FIC ainda não possui perfil profissional FIC":"A qualificação possui perfil profissional FIC";
+  else if(text.includes("perfil profissional tem mais de 4 anos"))statement=yes?"O perfil profissional possui mais de quatro anos":"O perfil profissional possui até quatro anos";
+  else if(text.includes("tecnologia que necessita"))statement=yes?"Foram identificadas tecnologias que precisam ser incluídas ou retiradas":"Não foram identificadas tecnologias que precisem ser incluídas ou retiradas";
+  else if(text.includes("altera o perfil profissional"))statement=yes?"A alteração tecnológica impacta o perfil profissional":"A alteração tecnológica não impacta o perfil profissional";
+  else if(text.includes("desenho curricular esta vinculado"))statement=yes?"O desenho curricular está vinculado ao perfil profissional":"O desenho curricular precisa ser revisto para se vincular ao perfil profissional";
+  else if(text.includes("padroes de desempenho"))statement=yes?"Os padrões de desempenho estão descritos como capacidades observáveis":"Os padrões de desempenho precisam ser reescritos como capacidades observáveis";
+  else if(text.includes("aprendizagem ou tecnico"))statement=yes?"Trata-se de curso de aprendizagem ou técnico":"O curso não pertence às modalidades de aprendizagem ou técnico";
+  else if(text.includes("unidades curriculares comuns"))statement=yes?"O curso possui unidades curriculares comuns":"O curso precisa incluir unidades curriculares comuns";
+  else if(text.includes("data de abertura de vigencia"))statement=yes?"A vigência foi aberta entre 2024 e 2025":"A vigência foi aberta fora do período de 2024 a 2025";
+  else statement=`A condição “${String(item.text||"").replace(/\?$/g,"")}” ${yes?"foi confirmada":"não foi confirmada"}`;
+  return statement.replace(/\.+$/g,"").trim();
+}
+function buildDecisionNarrative(path,result,courseName,criterion,extraObservation=""){
+  const statements=[];
+  (path||[]).forEach(item=>{
+    const statement=decisionStatement(item);
+    if(statement)statements.push(`${statement}.`);
+    if(item.scenarios?.length)statements.push(`Os cenários selecionados foram ${item.scenarios.join(", ")}.`);
+    if(item.observation)statements.push(`Como complemento técnico, foi registrado: ${item.observation}.`);
+  });
+  const introduction=`A análise do curso ${courseName} foi conduzida conforme o ${criterion}.`;
+  const evidence=statements.length?` ${statements.join(" ")}`:" Não há detalhamento suficiente do percurso na fonte original.";
+  const extra=extraObservation?` Como registro adicional, consta: ${extraObservation}.`:"";
+  const conclusion=result?` Diante das evidências registradas, recomenda-se ${formatDecisionResult(result).toLocaleLowerCase("pt-BR")}.`:"";
+  return `${introduction}${evidence}${extra}${conclusion}`.replace(/\s+/g," ").trim();
+}
 function mapRemoteEvaluation(row){
   const state=row.state||{};
   return {
@@ -342,9 +383,12 @@ function showResult(){
   $("result-title").style.color=resultClass.includes("fechar")?"var(--red)":resultClass.includes("reestruturar")?"var(--amber)":"var(--green)";
   $("result-subtitle").textContent="A recomendação foi produzida pelo caminho oficial e permanece editável antes do registro.";
   $("result-course").textContent=selectedCourse.name;$("result-criterion").textContent=CRITERIA[selectedCourse.criterion].short;$("result-count").textContent=answers.length;
-  $("justification").value=answers.map(a=>
-    `${a.answer?"SIM":"NÃO"} — ${a.text}${a.scenarios?.length?`\nCenários: ${a.scenarios.join(", ")}`:""}${a.observation?`\nObservações: ${a.observation}`:""}`
-  ).join("\n")+"\n\nDECISÃO: "+formatDecisionResult(finalResult)+".";
+  $("justification").value=buildDecisionNarrative(
+    answers,
+    finalResult,
+    selectedCourse.name,
+    CRITERIA[selectedCourse.criterion].short
+  );
   $("save-result").disabled=false;
   $("save-result").textContent=editingEvaluation?"Atualizar avaliação":"Concluir e salvar";
   showView("result-view",4);
@@ -495,16 +539,17 @@ function openHistory(id){
   $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>`
     <div class="process-step">
       <span>${step.step||index+1}</span>
-      <div><strong>${escapeHtml(step.text)}</strong>${step.answer===null||step.answer===undefined?"":`<small class="${step.answer?"yes":"no"}">${step.answer?"SIM":"NÃO"}</small>`}${step.scenarios?.length?`<p class="process-scenarios"><b>Cenários:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.observation?`<p class="process-observation"><b>Observações:</b> ${escapeHtml(step.observation)}</p>`:""}</div>
+      <div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.observation?`<p class="process-observation"><b>Registro complementar:</b> ${escapeHtml(step.observation)}</p>`:""}</div>
     </div>`).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
-  const complementaryRecords=[];
-  processItems.forEach(step=>{
-    if(step.scenarios?.length)complementaryRecords.push(`<p><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`);
-    if(step.observation)complementaryRecords.push(`<p><b>Observação da pergunta ${step.step||""}:</b> ${escapeHtml(step.observation)}</p>`);
-  });
-  if(item.observations)complementaryRecords.push(`<p><b>Observação importada:</b> ${escapeHtml(item.observations).replace(/\n/g,"<br>")}</p>`);
+  const legacyQuestionnaire=/(^|\n)\s*(SIM|NÃO)\s+—/i.test(item.justification||"");
+  const executiveJustification=(item.sourceId||legacyQuestionnaire)
+    ?buildDecisionNarrative(processItems,item.result,item.name,item.criterion,item.observations)
+    :(item.justification||buildDecisionNarrative(processItems,item.result,item.name,item.criterion,item.observations));
   $("history-justification").innerHTML=`
-    <div class="single"><span class="section-kicker">JUSTIFICATIVA CONSOLIDADA</span>${complementaryRecords.length?complementaryRecords.join(""):'<p>Nenhum cenário ou observação complementar foi registrado.</p>'}</div>`;
+    <details class="justification-disclosure">
+      <summary><span>Justificativa consolidada</span><small>Visualizar parecer</small></summary>
+      <div><p>${escapeHtml(executiveJustification).replace(/\n/g,"<br>")}</p></div>
+    </details>`;
   const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
   $("history-modal-edit").hidden=!canEdit;
   $("history-modal").classList.add("open");$("history-modal").setAttribute("aria-hidden","false");

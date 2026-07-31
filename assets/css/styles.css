@@ -2556,13 +2556,14 @@ body {
 .history-modal-head {
   display: flex;
   justify-content: space-between;
-  padding: 23px 27px;
+  padding: 17px 27px;
   border-bottom: 1px solid var(--line);
 }
 .history-modal-head h2 {
-  font: 900 19px Montserrat;
+  font: 900 17px Montserrat;
   color: #292929;
-  margin: 5px 0;
+  margin: 0 0 4px;
+  line-height: 1.25;
 }
 .history-modal-head p {
   margin: 0;
@@ -2686,9 +2687,7 @@ body {
   padding: 20px 0;
 }
 .history-justification {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  display: block;
   padding: 0 27px 23px;
 }
 .history-justification > div {
@@ -2715,6 +2714,51 @@ body {
   padding: 16px 27px;
   border-top: 1px solid var(--line);
   background: #ffffff;
+}
+.justification-disclosure {
+  border-left: 3px solid var(--blue);
+  background: #faf6f6;
+}
+.justification-disclosure summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 14px 16px;
+  color: var(--blue);
+  cursor: pointer;
+  list-style: none;
+}
+.justification-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+.justification-disclosure summary span {
+  font: 800 10px Montserrat, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.justification-disclosure summary small {
+  color: #777777;
+  font-size: 8px;
+  font-weight: 700;
+}
+.justification-disclosure summary small::after {
+  content: " +";
+  color: var(--blue);
+  font-weight: 900;
+}
+.justification-disclosure[open] summary small::after {
+  content: " −";
+}
+.justification-disclosure > div {
+  padding: 0 16px 16px;
+  border-top: 1px solid #eadcdd;
+}
+.justification-disclosure > div p {
+  margin-top: 13px;
+  color: #444444;
+  font-size: 10px;
+  line-height: 1.75;
 }
 .history-modal-actions [hidden] {
   display: none;
