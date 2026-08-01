@@ -6,8 +6,8 @@ const CRITERIA = {
     label: "Regulares e Qualificação FIC",
     short: "Critério Regular / Qualificação",
     questions: {
-      1:{text:"Houve oferta contínua do curso nos anos de 2021, 2022, 2023, 2024 e 2025?",yes:7,no:2},
-      2:{text:"Houve oferta do curso em algum dos anos de 2023, 2024, 2025 e/ou 2026?",yes:3,no:4},
+      1:{text:"Houve oferta contínua do curso nos anos de 2023, 2024 e 2025?",yes:7,no:2},
+      2:{text:"Houve oferta do curso em algum dos anos de 2023, 2024 e/ou 2025?",yes:3,no:4},
       3:{text:"Mais de uma escola oferta esse título?",yes:4,no:5},
       4:{text:"O curso responde a um dos cenários mapeados?",yes:6,no:6},
       5:{text:"A escola tem uma justificativa técnica para manter o curso?",hint:"Considere atendimento a empresa, demanda local ou outra necessidade formalizada com a coordenação.",yes:7,no:6},
@@ -26,8 +26,8 @@ const CRITERIA = {
     label: "FIC — Aperfeiçoamento, Especialização e Iniciação",
     short: "Critério FIC",
     questions: {
-      1:{text:"Houve oferta contínua do curso nos anos de 2022, 2023, 2024 e 2025?",yes:4,no:2},
-      2:{text:"Houve oferta do curso em algum dos anos de 2024, 2025 e/ou 2026?",yes:3,no:4},
+      1:{text:"Houve oferta contínua do curso nos anos de 2023, 2024 e 2025?",yes:4,no:2},
+      2:{text:"Houve oferta do curso em algum dos anos de 2024 e/ou 2025?",yes:3,no:4},
       3:{text:"Mais de uma escola oferta esse título?",yes:4,no:5},
       4:{text:"O curso responde a um dos cenários mapeados?",yes:6,no:"FECHAR A VIGÊNCIA"},
       5:{text:"A escola tem uma justificativa técnica para manter o curso?",hint:"Considere atendimento a empresa, demanda local ou outra necessidade formalizada com a coordenação.",yes:6,no:"FECHAR A VIGÊNCIA"},
@@ -334,7 +334,7 @@ function selectCourse(code){
   const vals=Object.values(selectedCourse.enrollments),max=Math.max(...vals,1);
   $("year-bars").innerHTML=Object.entries(selectedCourse.enrollments).map(([year,value])=>`<div class="year-item"><span>${year}</span><strong>${value}</strong><i style="--w:${Math.max(value/max*100,value?7:0)}%"></i></div>`).join("");
   const active=vals.filter(v=>v>0).length;
-  $("evidence-note").textContent=active===3?"Há matrículas em todos os anos disponíveis (2023–2025). A oferta anterior e 2026 ainda exigem confirmação.":active?`Há matrículas em ${active} dos 3 anos disponíveis. Confirme eventuais ofertas sem matrícula e dados de 2026.`:"Não há matrículas registradas entre 2023 e 2025 para este código.";
+  $("evidence-note").textContent=active===3?"Há matrículas em todos os anos disponíveis (2023–2025).":active?`Há matrículas em ${active} dos 3 anos disponíveis entre 2023 e 2025.`:"Não há matrículas registradas entre 2023 e 2025 para este código.";
   showView("validate-view",2);
 }
 async function startEvaluation(){
@@ -443,18 +443,25 @@ function suggestionFor(step){
       title:"Matrículas encontradas na base",
       body:yearRows,
       conclusion:continuous
-        ?"Há oferta registrada em 2023, 2024 e 2025. Confirme também os anos de 2021 e 2022 antes de responder."
-        :"Não há continuidade em todos os anos disponíveis. Os dados de 2021 e 2022 não constam nesta aba e também precisam ser confirmados."
+        ?"Há oferta registrada em todos os anos disponíveis: 2023, 2024 e 2025."
+        :"Não há continuidade de oferta em todos os anos disponíveis entre 2023 e 2025."
     };
   }
   if(step===2){
-    const hasRecent=years.some(year=>e[year]>0);
+    const relevantYears=selectedCourse.criterion==="fic"?[2024,2025]:years;
+    const hasRecent=relevantYears.some(year=>e[year]>0);
+    const relevantRows=relevantYears.map(year=>`
+      <div class="evidence-row">
+        <span class="evidence-year">${year}</span>
+        <strong>${e[year].toLocaleString("pt-BR")} matrícula${e[year]===1?"":"s"}</strong>
+        <i class="${e[year]>0?"has-data":"no-data"}">${e[year]>0?"Oferta registrada":"Sem matrícula"}</i>
+      </div>`).join("");
     return {
       title:"Oferta recente identificada",
-      body:yearRows,
+      body:relevantRows,
       conclusion:hasRecent
-        ?"Existe matrícula em pelo menos um dos anos disponíveis. Confirme apenas se também houve oferta em 2026."
-        :"Não foram encontradas matrículas entre 2023 e 2025. Confirme se houve alguma oferta em 2026."
+        ?"Existe matrícula em pelo menos um dos anos disponíveis considerados pelo critério."
+        :"Não foram encontradas matrículas nos anos disponíveis considerados pelo critério."
     };
   }
   if(step===3){
@@ -501,9 +508,8 @@ function recommendedAnswer(step){
   const e=selectedCourse.enrollments,units=selectedCourse.units;
   const years=[2023,2024,2025];
   if(step===1){
-    // A presença de ano sem matrícula comprova quebra na continuidade disponível.
-    // Todos positivos ainda não comprovam 2021/2022, portanto não pré-seleciona "Sim".
-    return years.some(year=>e[year]===0)?false:null;
+    // A base disponível cobre 2023–2025; esses são os anos usados para continuidade.
+    return years.every(year=>e[year]>0);
   }
   if(step===2){
     // A pergunta usa "algum dos anos": um registro positivo já permite responder "Sim".
