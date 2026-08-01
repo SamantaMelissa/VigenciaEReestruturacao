@@ -128,6 +128,7 @@ begin
 
   update public.evaluations evaluation
   set created_by = auth.uid(),
+      status = 'em_analise',
       state = jsonb_set(coalesce(evaluation.state, '{}'::jsonb), '{validationReady}', 'false'::jsonb, true),
       updated_at = now()
   where evaluation.id = target_id;

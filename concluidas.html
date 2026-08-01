@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#c1272c">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <title>Análises concluídas | Radar de Cursos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="brand-mark">S</span><span><strong>Radar de Cursos</strong><small>Decisão orientada por evidências</small></span></a>
+      <div class="top-actions">
+        <a class="contact-nav" href="gestao.html">Painel gestor</a>
+        <a class="contact-nav" href="validacoes.html">Central de validações</a>
+        <a class="back-evaluation" href="index.html">← Voltar para avaliações</a>
+      </div>
+    </header>
+    <main class="pending-page completed-page">
+      <section class="pending-hero">
+        <div><span class="eyebrow">DECISÕES FINALIZADAS</span><h1>Análises concluídas</h1><p>Consulte as decisões registradas e abra o processo completo de cada curso.</p></div>
+        <div class="pending-updated"><span>Total concluído</span><strong id="completed-total">0</strong></div>
+      </section>
+      <section class="history">
+        <div class="history-head">
+          <div><span class="section-kicker">HISTÓRICO</span><h2>Decisões registradas</h2></div>
+          <div class="history-actions"><input id="history-search" placeholder="Buscar curso, código ou decisão"><button class="btn secondary" id="export-csv">Exportar CSV ↓</button></div>
+        </div>
+        <div class="history-list" id="history-list"></div>
+      </section>
+    </main>
+    <footer><span>SENAI · Fábrica de Cursos</span><span>Histórico de análises concluídas</span></footer>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div class="history-modal" id="history-modal" aria-hidden="true">
+    <div class="history-modal-card">
+      <div class="history-modal-head"><div><h2 id="history-modal-title"></h2><p id="history-modal-code"></p></div><button id="history-modal-close" aria-label="Fechar">×</button></div>
+      <div class="history-result-strip" id="history-result-strip"></div>
+      <div class="history-modal-body">
+        <div class="history-overview" id="history-overview"></div>
+        <div class="history-process"><span class="section-kicker">PROCESSO EVIDENCIADO</span><h3>Caminho da decisão</h3><div id="history-process-list"></div></div>
+      </div>
+      <div class="history-justification" id="history-justification"></div>
+      <div class="history-modal-actions"><button class="btn secondary" id="history-modal-ok">Fechar consulta</button><a class="btn primary" id="history-modal-edit" href="index.html">Editar avaliação</a></div>
+    </div>
+  </div>
+  <script src="assets/data/courses-data.js"></script>
+  <script src="assets/js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase-service.js"></script>
+  <script src="assets/js/concluidas.js"></script>
+</body>
+</html>

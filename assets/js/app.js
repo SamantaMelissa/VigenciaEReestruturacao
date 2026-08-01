@@ -45,6 +45,8 @@ let scenarioFixItem=null;
 let history=[];
 let contactQueue=[];
 let evaluationDrafts=[];
+let pendingCourses=[];
+let claimingCourse=false;
 let savingResult=false;
 let savingDraft=false;
 let savingAreaChange=false;
@@ -154,12 +156,13 @@ function mapRemoteEvaluation(row){
   };
 }
 async function loadRemoteAppData(){
-  const [completed,drafts,validations,analysisScope,answerEvidence]=await Promise.all([
+  const [completed,drafts,validations,analysisScope,answerEvidence,claims]=await Promise.all([
     remoteDb.evaluations(["concluida"]),
     remoteDb.evaluations(["rascunho","em_analise"]),
     remoteDb.validations(),
     remoteDb.analysisScope(),
-    remoteDb.evaluationAnswers()
+    remoteDb.evaluationAnswers(),
+    remoteDb.evaluationClaims()
   ]);
   const evidenceByEvaluation=new Map();
   answerEvidence.forEach(row=>{
@@ -189,6 +192,105 @@ async function loadRemoteAppData(){
   contactQueue=validations;
   analysisScopeCodes=new Set(analysisScope.filter(item=>item.is_analyzable).map(item=>String(item.course_code)));
   $("base-total").textContent=analysisScopeCodes.size;
+  $("search-base-total").textContent=analysisScopeCodes.size.toLocaleString("pt-BR");
+  buildPendingCourses(analysisScope,completed,claims);
+}
+
+function criterionLabel(course){
+  return course?.criterion==="fic"?"Critério FIC":"Critério Regular / Qualificação";
+}
+function buildPendingCourses(scope,completed,claims){
+  const completedCodes=new Set(completed.map(item=>String(item.course_code)));
+  const claimsByCode=new Map(claims.map(item=>[String(item.course_code),item]));
+  const ownDraftCodes=new Set(claims.filter(item=>item.created_by===appSession.user.id).map(item=>String(item.course_code)));
+  const readyCodes=new Set(claims.filter(item=>item.available_for_claim===true).map(item=>String(item.course_code)));
+  const validationCodes=new Set(contactQueue.filter(item=>["pendente","em_contato"].includes(item.status)).map(item=>String(item.course_code)));
+  const eligible=scope.filter(item=>item.is_analyzable);
+  pendingCourses=eligible
+    .filter(item=>!completedCodes.has(String(item.course_code)))
+    .map(item=>{
+      const code=String(item.course_code),claim=claimsByCode.get(code);
+      const status=validationCodes.has(code)?"em_validacao":readyCodes.has(code)?"retorno_disponivel":claim?.status==="rascunho"?"rascunho_salvo":claim?"em_andamento":"nao_iniciada";
+      return {...item,status,canResume:ownDraftCodes.has(code)};
+    })
+    .sort((a,b)=>{
+      const priority=item=>({nao_iniciada:0,retorno_disponivel:1,rascunho_salvo:2,em_andamento:3,em_validacao:4}[item.status]??5);
+      return priority(a)-priority(b)||a.course_name.localeCompare(b.course_name,"pt-BR");
+    });
+  const readyCount=pendingCourses.filter(item=>item.status==="retorno_disponivel").length;
+  $("pending-ready-alert").hidden=readyCount===0;
+  $("pending-ready-title").textContent=`${readyCount} ${readyCount===1?"avaliação aguarda":"avaliações aguardam"} continuidade da equipe`;
+  $("pending-total").textContent=pendingCourses.length.toLocaleString("pt-BR");
+  $("pending-new").textContent=pendingCourses.filter(item=>item.status==="nao_iniciada").length.toLocaleString("pt-BR");
+  $("pending-progress").textContent=pendingCourses.filter(item=>["em_andamento","rascunho_salvo","retorno_disponivel","em_validacao"].includes(item.status)).length.toLocaleString("pt-BR");
+  $("pending-completed").textContent=eligible.filter(item=>completedCodes.has(String(item.course_code))).length.toLocaleString("pt-BR");
+  $("pending-updated").textContent=new Date().toLocaleString("pt-BR");
+}
+function renderPending(){
+  const query=normalize($("pending-search").value);
+  const filter=$("pending-filter").value;
+  const items=pendingCourses.filter(item=>(filter==="todos"||item.status===filter)&&normalize(`${item.course_name} ${item.course_code}`).includes(query));
+  $("pending-list").innerHTML=items.length?items.map(item=>{
+    const course=COURSES.find(entry=>String(entry.code)===String(item.course_code));
+    const ready=item.status==="retorno_disponivel",saved=item.status==="rascunho_salvo",inProgress=item.status==="em_andamento",inValidation=item.status==="em_validacao";
+    const href=(inProgress||saved)?`?retomar=${encodeURIComponent(item.course_code)}`:`?analisar=${encodeURIComponent(item.course_code)}`;
+    return `<article class="pending-item ${item.status}">
+      <div class="pending-item-code"><span>CÓDIGO</span><strong>${escapeHtml(item.course_code)}</strong></div>
+      <div class="pending-item-main"><strong>${escapeHtml(item.course_name)}</strong><small>${escapeHtml(criterionLabel(course))}${course?.area?` · ${escapeHtml(course.area)}`:""}</small></div>
+      <span class="pending-status">${inValidation?"Em validação com a unidade":ready?"Retorno disponível":saved?"Pendente salvo":inProgress?"Em andamento":"Não iniciada"}</span>
+      ${inValidation?'<span class="pending-action unavailable validation">Aguardando retorno da unidade</span>':ready?`<button class="pending-action ready" type="button" data-claim-code="${escapeHtml(item.course_code)}">Assumir e continuar →</button>`:saved&&!item.canResume?`<button class="pending-action saved" type="button" data-claim-pending="${escapeHtml(item.course_code)}">Assumir e continuar →</button>`:inProgress&&!item.canResume?'<span class="pending-action unavailable">Em análise pela equipe</span>':`<a class="pending-action${saved?" saved":""}" href="${href}">${inProgress||saved?"Continuar análise":"Iniciar análise"} →</a>`}
+    </article>`;
+  }).join(""):`<div class="manager-empty">Nenhum curso encontrado com esses filtros.</div>`;
+  document.querySelectorAll("[data-claim-code]").forEach(button=>button.onclick=()=>claimReadyEvaluation(button.dataset.claimCode,button));
+  document.querySelectorAll("[data-claim-pending]").forEach(button=>button.onclick=()=>claimPendingEvaluation(button.dataset.claimPending,button));
+}
+function refreshPendingSummary(){
+  $("pending-total").textContent=pendingCourses.length.toLocaleString("pt-BR");
+  $("pending-new").textContent=pendingCourses.filter(item=>item.status==="nao_iniciada").length.toLocaleString("pt-BR");
+  $("pending-progress").textContent=pendingCourses.filter(item=>["em_andamento","rascunho_salvo","retorno_disponivel","em_validacao"].includes(item.status)).length.toLocaleString("pt-BR");
+  $("pending-completed").textContent=Math.max(0,analysisScopeCodes.size-pendingCourses.length).toLocaleString("pt-BR");
+}
+function setPendingInProgress(courseCode){
+  pendingCourses=pendingCourses.map(item=>String(item.course_code)===String(courseCode)?{...item,status:"em_andamento",canResume:true}:item);
+  sortPendingCourses();
+  refreshPendingSummary();renderPending();
+}
+function setPendingSaved(courseCode){
+  pendingCourses=pendingCourses.map(item=>String(item.course_code)===String(courseCode)?{...item,status:"rascunho_salvo",canResume:true}:item);
+  sortPendingCourses();
+  refreshPendingSummary();renderPending();
+}
+function sortPendingCourses(){
+  const priority=item=>({nao_iniciada:0,retorno_disponivel:1,rascunho_salvo:2,em_andamento:3,em_validacao:4}[item.status]??5);
+  pendingCourses.sort((a,b)=>priority(a)-priority(b)||a.course_name.localeCompare(b.course_name,"pt-BR"));
+}
+function removeFromPending(courseCode){
+  pendingCourses=pendingCourses.filter(item=>String(item.course_code)!==String(courseCode));
+  refreshPendingSummary();renderPending();
+}
+async function claimReadyEvaluation(courseCode,button){
+  if(claimingCourse)return;
+  claimingCourse=true;button.disabled=true;button.textContent="Assumindo...";
+  try{
+    await remoteDb.claimReadyEvaluation(courseCode);
+    location.href=`?retomar=${encodeURIComponent(courseCode)}`;
+  }catch(error){
+    handleSupabaseError(error);
+    toast(error?.message?.includes("assumido")?"Outro usuário já assumiu esta avaliação. A lista será atualizada.":"Não foi possível assumir esta avaliação.");
+    setTimeout(()=>location.reload(),1200);
+  }finally{claimingCourse=false}
+}
+async function claimPendingEvaluation(courseCode,button){
+  if(claimingCourse)return;
+  claimingCourse=true;button.disabled=true;button.textContent="Assumindo...";
+  try{
+    await remoteDb.claimPendingEvaluation(courseCode);
+    location.href=`?retomar=${encodeURIComponent(courseCode)}`;
+  }catch(error){
+    handleSupabaseError(error);
+    toast(/assumid|disponível/i.test(error?.message||"")?"Outro usuário já assumiu este item ou ele não está mais disponível.":"Não foi possível assumir esta análise.");
+    setTimeout(()=>location.reload(),1200);
+  }finally{claimingCourse=false}
 }
 function showView(id,step){
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));
@@ -252,6 +354,7 @@ async function startEvaluation(){
       const {data,error}=await supabaseClient.from("evaluations").insert(payload).select().single();
       if(error)throw error;
       evaluationDrafts.unshift(mapRemoteEvaluation(data));
+      setPendingInProgress(selectedCourse.code);
       renderDrafts();
     }catch(error){
       if(error?.code==="23505"){
@@ -316,7 +419,7 @@ async function saveAreaChange(){
     history=history.filter(item=>String(item.code)!==String(selectedCourse.code));history.unshift(completed);
     evaluationDrafts=evaluationDrafts.filter(item=>String(item.code)!==String(selectedCourse.code));
     $("area-change-modal").classList.remove("open");$("area-change-modal").setAttribute("aria-hidden","true");
-    renderHistory();renderDrafts();reset();toast("Curso concluído como troca de área.");
+    removeFromPending(selectedCourse.code);renderHistory();renderDrafts();reset();toast("Curso concluído como troca de área.");
   }catch(error){
     if(error?.code==="23505"){
       $("area-change-modal").classList.remove("open");$("area-change-modal").setAttribute("aria-hidden","true");
@@ -593,7 +696,7 @@ async function saveResult(){
     if(editingEvaluation)history=history.map(item=>String(item.id)===String(saved.id)?mappedSaved:item);
     else history.unshift(mappedSaved);
     evaluationDrafts=evaluationDrafts.filter(item=>item.code!==selectedCourse.code);
-    renderHistory();renderDrafts();
+    removeFromPending(selectedCourse.code);renderHistory();renderDrafts();
     $("save-result").disabled=true;
     reset();
     $("course-search").focus();
@@ -608,8 +711,9 @@ async function saveResult(){
   }
 }
 function renderHistory(){
-  const q=normalize($("history-search").value),items=history.filter(h=>normalize(`${h.name} ${h.code} ${h.result}`).includes(q));
   $("saved-total").textContent=history.length;
+  if(!$("history-list"))return;
+  const q=normalize($("history-search").value),items=history.filter(h=>normalize(`${h.name} ${h.code} ${h.result}`).includes(q));
   $("history-list").innerHTML=items.length?items.map(h=>{
     const resultClass=normalize(h.result).includes("reestruturar")?"reestruturar":normalize(h.result).includes("fechar")?"fechar":"";
     const source=h.sourceId?"Planilha de definição":"Sistema";
@@ -787,6 +891,7 @@ async function saveDraft(){
     }
     const mapped=mapRemoteEvaluation(saved),index=evaluationDrafts.findIndex(item=>item.code===draft.code);
     if(index>=0)evaluationDrafts[index]=mapped;else evaluationDrafts.unshift(mapped);
+    setPendingSaved(selectedCourse.code);
     renderDrafts();
     $("save-progress").classList.add("saved");$("save-progress").textContent="✓ Progresso salvo";
     $("course-search").value="";searchCourses();showView("search-view",1);
@@ -878,6 +983,7 @@ function updateContactBadge(){
 function toast(text){$("toast").textContent=text;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2500)}
 
 $("base-total").textContent=ANALYZABLE_COURSES.length;
+$("search-base-total").textContent=ANALYZABLE_COURSES.length.toLocaleString("pt-BR");
 $("course-search").addEventListener("input",searchCourses);
 $("clear-search").onclick=()=>{$("course-search").value="";searchCourses();$("course-search").focus()};
 document.querySelectorAll(".back-search").forEach(b=>b.onclick=reset);
@@ -903,7 +1009,9 @@ document.querySelectorAll(".scenario-options [data-scenario]").forEach(button=>b
 });
 document.querySelectorAll(".decision").forEach(b=>b.onclick=()=>answer(b.dataset.answer==="yes"));
 $("quiz-back").onclick=backQuestion;$("restart").onclick=reset;$("result-back").onclick=returnToLastQuestion;$("save-result").onclick=saveResult;
-$("history-search").oninput=renderHistory;$("export-csv").onclick=exportCsv;
+if($("history-search"))$("history-search").oninput=renderHistory;
+if($("export-csv"))$("export-csv").onclick=exportCsv;
+$("pending-search").oninput=renderPending;$("pending-filter").onchange=renderPending;
 $("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;
 $("history-modal-edit").onclick=editHistoryEvaluation;
 $("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
@@ -933,7 +1041,11 @@ async function initializeApp(){
   try{
     await requireSupabaseSession();
     if(!isPreviewMode)await loadRemoteAppData();
-    renderHistory();updateContactBadge();renderDrafts();
+    if(isPreviewMode){
+      const previewScope=COURSES.filter(course=>analysisScopeCodes.has(String(course.code))).map(course=>({course_code:course.code,course_name:course.name,is_analyzable:true}));
+      buildPendingCourses(previewScope,[],[]);
+    }
+    renderHistory();renderPending();updateContactBadge();renderDrafts();
     const parameters=new URLSearchParams(location.search);
     const resumeFromContact=parameters.get("retomar");
     if(resumeFromContact&&evaluationDrafts.some(draft=>draft.code===resumeFromContact))resumeDraft(resumeFromContact);

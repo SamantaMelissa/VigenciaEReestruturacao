@@ -20,7 +20,7 @@
       </a>
       <div class="top-actions">
         <a class="contact-nav" href="gestao.html">Painel gestor</a>
-        <a class="contact-nav" href="pendencias.html">Análises pendentes</a>
+        <a class="contact-nav" href="concluidas.html">Análises concluídas</a>
         <a class="contact-nav live-only" href="validacoes.html">Central de validações <b id="contact-count">0</b></a>
       </div>
     </header>
@@ -57,7 +57,7 @@
           <div class="view active" id="search-view">
             <span class="section-kicker">ETAPA 01</span>
             <h2>Qual curso você quer analisar?</h2>
-            <p class="lead">A busca consulta os 585 registros do arquivo <b>T.I. Dados dos cursos 2026</b>.</p>
+            <p class="lead">A busca consulta os <b id="search-base-total">0</b> cursos disponíveis para análise na base <b>T.I. Dados dos cursos 2026</b>.</p>
             <label class="search-box" for="course-search">
               <span>⌕</span>
               <input id="course-search" autocomplete="off" placeholder="Digite nome ou código do curso">
@@ -159,12 +159,36 @@
         </section>
       </section>
 
-      <section class="history">
-        <div class="history-head">
-          <div><span class="section-kicker">DECISÕES FINALIZADAS</span><h2>Análises concluídas</h2></div>
-          <div class="history-actions"><input id="history-search" placeholder="Buscar nas análises concluídas"><button class="btn secondary" id="export-csv">Exportar CSV ↓</button></div>
+      <section class="pending-content home-pending" id="analises-pendentes">
+        <div class="pending-home-heading">
+          <div><span class="section-kicker">FILA DE TRABALHO</span><h2>Análises pendentes</h2><p>Cursos GED que ainda precisam passar pelo fluxo de decisão.</p></div>
+          <div class="pending-updated"><span>Atualização da lista</span><strong id="pending-updated">Carregando…</strong></div>
         </div>
-        <div class="history-list" id="history-list"></div>
+        <div class="pending-kpis">
+          <article><span>TOTAL PENDENTE</span><strong id="pending-total">0</strong><small>cursos ainda não concluídos</small></article>
+          <article><span>NÃO INICIADAS</span><strong id="pending-new">0</strong><small>sem progresso salvo</small></article>
+          <article><span>EM ANDAMENTO</span><strong id="pending-progress">0</strong><small>com análise iniciada</small></article>
+          <article><span>CONCLUÍDAS</span><strong id="pending-completed">0</strong><small>do escopo GED</small></article>
+        </div>
+
+        <section class="pending-panel">
+          <div class="pending-ready-alert" id="pending-ready-alert" hidden><span>!</span><div><strong id="pending-ready-title"></strong><small>Esses retornos aparecem para todos. Qualquer avaliador pode assumir um deles e dar continuidade.</small></div></div>
+          <div class="pending-panel-head">
+            <div><span class="section-kicker">CURSOS A FAZER</span><h2>Análises pendentes</h2><p>Use os filtros para organizar o trabalho da equipe.</p></div>
+            <div class="pending-filters">
+              <input id="pending-search" placeholder="Buscar curso ou código">
+              <select id="pending-filter">
+                <option value="todos">Todos os pendentes</option>
+                <option value="retorno_disponivel">Retornos disponíveis</option>
+                <option value="rascunho_salvo">Pendentes salvos</option>
+                <option value="nao_iniciada">Não iniciadas</option>
+                <option value="em_andamento">Em andamento</option>
+                <option value="em_validacao">Em validação com a unidade</option>
+              </select>
+            </div>
+          </div>
+          <div class="pending-list" id="pending-list"></div>
+        </section>
       </section>
 
     </main>

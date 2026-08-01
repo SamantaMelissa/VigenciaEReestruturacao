@@ -90,3 +90,9 @@ permanecem armazenados para histórico, mas ficam fora das novas análises.
 
 O script usa o código do curso como chave, não apaga registros e pode ser
 executado novamente quando a planilha for atualizada.
+
+## 9. Compartilhar rascunhos pendentes com a equipe
+
+Em bancos existentes, execute uma vez `enable_shared_pending_claims.sql`.
+O script permite que qualquer usuário autenticado assuma atomicamente um
+rascunho salvo, exceto quando o curso estiver aguardando validação com a unidade.

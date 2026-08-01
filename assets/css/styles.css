@@ -2113,10 +2113,10 @@ footer {
   }
 }
 
-/* Amplia em Full HD ou superior apenas quando o sistema/navegador está próximo de 100%. */
+/* Amplia para o equivalente a 150% em Full HD ou superior quando a escala está próxima de 100%. */
 @media (min-width: 1920px) and (min-height: 900px) and (max-resolution: 1.1dppx) {
   body {
-    zoom: 1.25;
+    zoom: 1.5;
   }
 }
 
@@ -2306,7 +2306,13 @@ body {
   border-top: 5px solid var(--blue);
 }
 .rail {
-  background: #191919;
+  background: linear-gradient(
+    180deg,
+    #191919 0%,
+    #191919 55%,
+    #281417 78%,
+    #6f101b 100%
+  );
   border-right: 0;
 }
 .rail-title,
@@ -3273,6 +3279,71 @@ body {
 .pending-content {
   padding: 28px 5% 50px;
 }
+.home-pending {
+  position: relative;
+  z-index: 1;
+  margin-top: -78px;
+  padding: 0 0 50px;
+}
+.pending-home-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 210px;
+  margin-bottom: 0;
+  padding: 48px 5% 76px;
+  background: linear-gradient(115deg, #171717 0%, #292929 72%, #4a1418 100%);
+  color: #fff;
+}
+.home-pending .pending-kpis {
+  position: relative;
+  z-index: 2;
+  margin: -34px 5% 20px;
+}
+.home-pending .pending-panel {
+  margin: 0 5%;
+}
+.pending-home-heading h2 {
+  margin: 5px 0 6px;
+  font: 900 25px Montserrat, sans-serif;
+}
+.pending-home-heading p {
+  margin: 0;
+  color: #d8d8d8;
+  font-size: 10px;
+}
+.pending-home-heading .pending-updated {
+  flex: 0 0 215px;
+}
+@media (max-width: 650px) {
+  .home-pending {
+    margin-top: -58px;
+  }
+  .pending-home-heading {
+    align-items: stretch;
+    flex-direction: column;
+    min-height: 0;
+    padding: 30px 5% 55px;
+  }
+  .pending-home-heading .pending-updated {
+    flex-basis: auto;
+    width: 100%;
+  }
+  .home-pending .pending-kpis {
+    margin-top: -28px;
+  }
+}
+.completed-page .history {
+  margin-top: 30px;
+  margin-bottom: 0;
+}
+.completed-page .history-list {
+  margin-bottom: 45px;
+}
+.completed-page .pending-hero {
+  margin-bottom: 0;
+}
 .pending-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3372,29 +3443,47 @@ body {
 }
 .pending-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
   margin-top: 16px;
 }
 .pending-item {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto;
-  grid-template-rows: minmax(42px, auto) auto;
-  align-items: center;
-  gap: 10px 12px;
-  min-height: 125px;
-  padding: 15px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(78px, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  min-height: 215px;
+  padding: 20px;
   border: 1px solid #e1e1e1;
-  border-left: 4px solid #777777;
+  border-top: 4px solid var(--blue);
   background: #ffffff;
+  box-shadow: 0 8px 24px rgba(20, 20, 20, 0.05);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.pending-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px rgba(20, 20, 20, 0.1);
 }
 .pending-item.em_andamento {
-  border-left-color: var(--amber);
+  border-top-color: var(--amber);
   background: #fffdf8;
 }
 .pending-item.retorno_disponivel {
-  border-left-color: #197653;
+  border-top-color: #197653;
   background: #f7fcfa;
+}
+.pending-item.rascunho_salvo {
+  border-top-color: #496ea8;
+  background: #f8faff;
+}
+.pending-item.em_validacao {
+  border-top-color: #777777;
+  background: #f7f7f7;
+}
+.pending-item-code {
+  grid-column: 1;
+  grid-row: 1;
 }
 .pending-item-code span,
 .pending-item-code strong,
@@ -3404,45 +3493,49 @@ body {
 }
 .pending-item-code span {
   color: #888888;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 800;
 }
 .pending-item-code strong {
   margin-top: 3px;
   color: #333333;
-  font-size: 10px;
+  font: 800 12px Montserrat, sans-serif;
 }
 .pending-item-main {
+  grid-column: 1 / -1;
+  grid-row: 2;
   min-width: 0;
+  padding: 5px 0 10px;
 }
 .pending-item-main strong {
   color: #292929;
-  font-size: 10px;
+  font: 800 13px/1.45 Montserrat, sans-serif;
   overflow-wrap: anywhere;
 }
 .pending-item-main small {
-  margin-top: 4px;
+  margin-top: 8px;
   color: #777777;
-  font-size: 8px;
+  font-size: 9px;
+  line-height: 1.5;
 }
 .pending-status {
-  justify-self: start;
-  padding: 5px 8px;
+  justify-self: end;
+  padding: 6px 9px;
   border-radius: 999px;
   background: #eeeeee;
   color: #555555;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 800;
   text-transform: uppercase;
 }
 .pending-item .pending-status {
-  grid-column: 1 / 3;
-  grid-row: 2;
+  grid-column: 2;
+  grid-row: 1;
 }
 .pending-item .pending-action {
-  grid-column: 3;
-  grid-row: 1 / 3;
-  min-width: 132px;
+  grid-column: 1 / -1;
+  grid-row: 3;
+  min-width: 0;
 }
 .em_andamento .pending-status {
   background: #fff0ce;
@@ -3452,12 +3545,23 @@ body {
   background: #dcefe7;
   color: #155d43;
 }
+.rascunho_salvo .pending-status {
+  background: #e7edf8;
+  color: #355783;
+}
+.em_validacao .pending-status {
+  background: #e7e7e7;
+  color: #555555;
+}
 .pending-action {
+  display: grid;
+  place-items: center;
   justify-self: stretch;
-  padding: 9px 10px;
+  min-height: 42px;
+  padding: 11px 14px;
   background: var(--blue);
   color: #ffffff;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   text-align: center;
   text-decoration: none;
@@ -3488,28 +3592,27 @@ body {
 }
 .pending-action.ready:hover { background: #105c3e; }
 .pending-action.ready:disabled { opacity: .65; cursor: wait; }
+.pending-action.saved,
+.pending-item.rascunho_salvo .pending-action.saved {
+  background: #496ea8;
+  color: #ffffff;
+}
+.pending-action.saved:hover { background: #365885; }
+.pending-action.validation { color: #666666; }
 @media (max-width: 1180px) {
   .pending-list {
-    grid-template-columns: 1fr;
-  }
-  .pending-item {
-    min-height: auto;
-  }
-}
-@media (max-width: 900px) {
-  .pending-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .pending-item {
-    grid-template-columns: 80px minmax(0, 1fr) 130px;
-    grid-template-rows: auto auto;
+    min-height: 205px;
   }
-  .pending-item .pending-status {
-    grid-column: 2;
+}
+@media (max-width: 900px) {
+  .pending-list {
+    grid-template-columns: 1fr;
   }
-  .pending-item .pending-action {
-    grid-column: 3;
-    grid-row: 1 / span 2;
+  .pending-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 650px) {

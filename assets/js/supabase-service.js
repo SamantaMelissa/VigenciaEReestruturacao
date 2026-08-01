@@ -24,6 +24,23 @@ const legacyCacheKeys=[
 ];
 const clearLegacyCache=()=>legacyCacheKeys.forEach((key)=>localStorage.removeItem(key));
 
+// Em monitores Full HD ou superiores, a interface já recebe a escala de 150% do tema.
+// Evita que atalhos do navegador a ampliem ou reduzam novamente.
+const lockBrowserZoom =
+  window.screen.width >= 1920 &&
+  window.screen.height >= 1080 &&
+  window.devicePixelRatio <= 1.1;
+if (lockBrowserZoom) {
+  document.addEventListener("wheel",event=>{
+    if(event.ctrlKey)event.preventDefault();
+  },{passive:false});
+  document.addEventListener("keydown",event=>{
+    const zoomKeys=new Set(["+","-","=","0","Add","Subtract"]);
+    if((event.ctrlKey||event.metaKey)&&zoomKeys.has(event.key))event.preventDefault();
+  });
+  document.addEventListener("gesturestart",event=>event.preventDefault(),{passive:false});
+}
+
 function createAuthScreen() {
   if (document.getElementById("auth-screen")) return;
   document.body.insertAdjacentHTML(
@@ -316,6 +333,13 @@ window.remoteDb = {
   },
   async claimReadyEvaluation(courseCode) {
     const { data, error } = await window.supabaseClient.rpc("claim_ready_evaluation", {
+      p_course_code: String(courseCode),
+    });
+    if (error) throw error;
+    return data;
+  },
+  async claimPendingEvaluation(courseCode) {
+    const { data, error } = await window.supabaseClient.rpc("claim_pending_evaluation", {
       p_course_code: String(courseCode),
     });
     if (error) throw error;

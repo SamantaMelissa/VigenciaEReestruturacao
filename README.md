@@ -46,8 +46,8 @@ Na Central de Validações, a pessoa responsável pelo contato apenas registra o
 
 | Arquivo | Finalidade |
 |---|---|
-| `index.html` | Busca de cursos, execução do fluxo, histórico e avaliações concluídas |
-| `pendencias.html` | Fila de trabalho, rascunhos e retornos disponíveis para a equipe |
+| `index.html` | Busca de cursos, execução do fluxo e fila de análises pendentes |
+| `concluidas.html` | Consulta, detalhamento e exportação das análises concluídas |
 | `validacoes.html` | Central de contatos e validações com as unidades |
 | `gestao.html` | Indicadores, acompanhamento gerencial e trocas de área |
 
@@ -56,7 +56,7 @@ Na Central de Validações, a pessoa responsável pelo contato apenas registra o
 ```text
 .
 ├── index.html
-├── pendencias.html
+├── concluidas.html
 ├── validacoes.html
 ├── gestao.html
 ├── assets/
