@@ -41,7 +41,10 @@ function openContact(id){
     <div class="dossier-block"><span>Unidade</span><strong>${validationUnit(item)?escapeHtml(validationUnit(item)):"Não informada"}</strong></div>
     <div class="dossier-block"><span>Matrículas evidenciadas</span><p>${escapeHtml(enrollmentRows)}</p></div>
     <div class="dossier-block"><span>Critério aplicado</span><p>${escapeHtml(item.criterion_label)}</p></div>
-    <div class="dossier-block"><span>Caminho percorrido</span><div class="dossier-trail">${(item.decision_trail||[]).map(a=>`<i>P${a.step}: ${a.answer?"SIM":"NÃO"}</i>`).join("")||"<i>Início do fluxo</i>"}</div></div>`;
+    <div class="dossier-block"><span>Caminho percorrido</span><div class="dossier-trail">${(item.decision_trail||[]).map((entry,index)=>{
+      const savedStep=Number(entry?.step??entry?.question_step??entry?.question),label=Number.isFinite(savedStep)&&savedStep>0?`P${savedStep}`:`Etapa ${index+1}`;
+      return `<i>${label}: ${entry?.answer===true?"SIM":"NÃO"}</i>`;
+    }).join("")||"<i>Início do fluxo</i>"}</div></div>`;
   $("contact-status").value=item.status||"pendente";$("contact-owner").value=item.responsible_name||"";
   $("contact-unit").value=validationUnit(item);
   $("contact-date").value=item.contact_date||"";$("contact-notes").value=item.notes||"";

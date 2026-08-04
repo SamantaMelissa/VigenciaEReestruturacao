@@ -2812,6 +2812,22 @@ body.modal-open { overflow: hidden; }
   .scenario-fix-card,
   .profile-card { max-height: calc(100dvh - 14px); }
 }
+
+/* Em Full HD, o modal mantém a ampliação de 150%, mas calcula sua altura
+   antes da escala para preservar cabeçalho, conteúdo rolável e ações. */
+html.full-hd-scale .completed-history-modal .history-modal-card,
+html.full-hd-scale .contact-modal-card {
+  height: calc(66.666667dvh - 48px);
+  max-height: calc(66.666667dvh - 48px);
+}
+html.full-hd-scale .history-modal-card,
+html.full-hd-scale .scenario-fix-card,
+html.full-hd-scale .profile-card,
+html.full-hd-scale .auth-card,
+html.full-hd-scale .system-unavailable-card,
+html.full-hd-scale .existing-analysis-card {
+  max-height: calc(66.666667dvh - 48px);
+}
 .history-modal-head {
   display: flex;
   justify-content: space-between;
