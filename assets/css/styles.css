@@ -1310,6 +1310,14 @@ footer {
   margin-top: 4px;
   font-size: 10px;
 }
+.manager-hero-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.manager-hero-actions .btn {
+  min-width: 210px;
+}
 .manager-dashboard {
   width: min(1180px, 90%);
   margin: -34px auto 0;
@@ -1521,6 +1529,13 @@ footer {
   }
   .manager-updated {
     margin-top: 22px;
+  }
+  .manager-hero-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  .manager-hero-actions .btn {
+    width: 100%;
   }
   .manager-kpis {
     grid-template-columns: 1fr 1fr;

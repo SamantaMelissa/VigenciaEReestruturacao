@@ -73,6 +73,17 @@ async function saveContact(){
     const {data,error}=await supabaseClient.from("school_validations").update(formPayload()).eq("id",activeContactId).select().single();
     if(error){if(!handleSupabaseError(error))toast("Não foi possível salvar o acompanhamento.");return}
     if(typeof data.school_answer==="boolean"){
+      if(!data.evaluation_id){
+        const {data:existingEvaluation,error:lookupError}=await supabaseClient.from("evaluations").select("id")
+          .eq("course_code",data.course_code).order("updated_at",{ascending:false}).limit(1).maybeSingle();
+        if(lookupError)throw lookupError;
+        if(existingEvaluation?.id){
+          const {data:linkedValidation,error:linkError}=await supabaseClient.from("school_validations")
+            .update({evaluation_id:existingEvaluation.id}).eq("id",data.id).select().single();
+          if(linkError)throw linkError;
+          data.evaluation_id=linkedValidation.evaluation_id;
+        }
+      }
       const trail=[...(item.decision_trail||[]).filter(entry=>entry.step!==5),{step:5,answer:data.school_answer,text:item.reason_question}];
       const {error:evaluationError}=await supabaseClient.rpc("apply_school_validation_return",{p_validation_id:item.id,p_positive:data.school_answer,p_trail:trail});
       if(evaluationError){if(!handleSupabaseError(evaluationError))toast("Contato salvo, mas não foi possível encaminhar a avaliação.");return}

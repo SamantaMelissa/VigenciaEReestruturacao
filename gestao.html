@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=20260804-modal-zoom-fit">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260804-manager-full-export">
 </head>
 <body>
   <div class="shell">
@@ -25,7 +25,7 @@
     <main class="manager-page">
       <section class="manager-hero">
         <div><span class="eyebrow">VISÃO GERENCIAL</span><h1>Painel gestor</h1><p>Acompanhe decisões, trabalhos em andamento e validações com as unidades em uma única visão.</p></div>
-        <div class="manager-updated"><span>Base conectada</span><strong id="manager-updated">Atualizando…</strong></div>
+        <div class="manager-hero-actions"><div class="manager-updated"><span>Base conectada</span><strong id="manager-updated">Atualizando…</strong></div><button class="btn primary" id="manager-export">Exportar situação dos cursos ↓</button></div>
       </section>
 
       <section class="manager-dashboard">
@@ -65,9 +65,11 @@
     <footer><span>SENAI · Fábrica de Cursos</span><span>Painel de acompanhamento gerencial</span></footer>
   </div>
   <div class="toast" id="toast"></div>
+  <script src="assets/data/courses-data.js"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="assets/js/supabase-service.js?v=20260804-fullhd-scale"></script>
-  <script src="assets/js/gestao.js"></script>
+  <script src="assets/js/gestao.js?v=20260804-manager-full-export"></script>
 </body>
 </html>
