@@ -71,7 +71,12 @@ def date_string(raw):
     return str(raw) if raw not in (None, "") else ""
 
 
-def criterion(course_type, level):
+FIC_CRITERION_OVERRIDES = {"109575", "87967"}
+
+
+def criterion(course_type, level, course_code=None):
+    if str(course_code or "").strip() in FIC_CRITERION_OVERRIDES:
+        return "fic"
     text = f"{course_type or ''} {level or ''}".lower()
     fic_specific = ("aperfeiçoamento" in text or "iniciação" in text or
                     "especialização profissional" in text)
@@ -118,7 +123,7 @@ for cells in export.iter_rows(min_row=2):
         "creator": value(row, "Unidade criadora") or "",
         "start": date_string(value(row, "Início de vigęncia") or value(row, "Início de vigência")),
         "end": date_string(value(row, "Data de término")),
-        "criterion": criterion(course_type, level),
+        "criterion": criterion(course_type, level, code),
         "enrollments": {
             "2023": enrollment[2023],
             "2024": enrollment[2024],
@@ -247,7 +252,7 @@ for order, row in enumerate(decision_rows, start=1):
     observations = row[decision_index["OBSERVAÇÕES"]] or ""
     decision_type = row[decision_index["Tipo de Curso"]]
     decision_level = row[decision_index["Nível"]]
-    decision_criterion = criterion(decision_type, decision_level)
+    decision_criterion = criterion(decision_type, decision_level, code_key)
     contact_text = f"{justification} {observations}".upper()
     if "CONVERSAR COM O COORDENADOR" in contact_text:
         enrollment = enrollments[code_key]

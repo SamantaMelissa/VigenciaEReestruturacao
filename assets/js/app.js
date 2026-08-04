@@ -1,4 +1,8 @@
 const COURSES = window.COURSES_DATA || [];
+const FIC_CRITERION_OVERRIDES = new Set(["109575", "87967"]);
+COURSES.forEach(course=>{
+  if(FIC_CRITERION_OVERRIDES.has(String(course.code)))course.criterion="fic";
+});
 const ANALYZABLE_COURSES = COURSES.filter(course=>String(course.creator||"").trim().toUpperCase()==="GED");
 let analysisScopeCodes=new Set(ANALYZABLE_COURSES.map(course=>String(course.code)));
 const CRITERIA = {
@@ -190,6 +194,10 @@ async function loadRemoteAppData(){
     .filter(row=>row.created_by===appSession.user.id)
     .map(mapRemoteEvaluation);
   contactQueue=validations;
+  analysisScope.forEach(item=>{
+    const course=COURSES.find(entry=>String(entry.code)===String(item.course_code));
+    if(course&&["fic","regular"].includes(item.criterion_key))course.criterion=item.criterion_key;
+  });
   analysisScopeCodes=new Set(analysisScope.filter(item=>item.is_analyzable).map(item=>String(item.course_code)));
   $("base-total").textContent=analysisScopeCodes.size;
   $("search-base-total").textContent=analysisScopeCodes.size.toLocaleString("pt-BR");
