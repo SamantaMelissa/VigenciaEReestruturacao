@@ -51,6 +51,7 @@ let contactQueue=[];
 let evaluationDrafts=[];
 let pendingCourses=[];
 let claimingCourse=false;
+let refreshingFromRealtime=false;
 let savingResult=false;
 let savingDraft=false;
 let savingAreaChange=false;
@@ -202,6 +203,30 @@ async function loadRemoteAppData(){
   $("base-total").textContent=analysisScopeCodes.size;
   $("search-base-total").textContent=analysisScopeCodes.size.toLocaleString("pt-BR");
   buildPendingCourses(analysisScope,completed,claims);
+}
+
+function isDecisionScreenActive(){
+  return ["quiz-view","result-view"].some(id=>$(id)?.classList.contains("active"));
+}
+
+async function refreshDashboardFromRealtime(payload){
+  if(refreshingFromRealtime||isDecisionScreenActive())return;
+  if(payload.startedBy&&payload.startedBy===appSession.user.id)return;
+  refreshingFromRealtime=true;
+  try{
+    const selectedCourseWasClaimed=selectedCourse
+      && String(selectedCourse.code)===String(payload.courseCode)
+      && $("validate-view")?.classList.contains("active");
+    await loadRemoteAppData();
+    renderHistory();renderPending();updateContactBadge();renderDrafts();
+    if(selectedCourseWasClaimed)reset();
+    const course=COURSES.find(item=>String(item.code)===String(payload.courseCode));
+    toast(course?`${course.name} acabou de ser assumido por outro avaliador. Lista atualizada.`:"A lista de análises foi atualizada.");
+  }catch(error){
+    if(!handleSupabaseError(error))console.error("Não foi possível atualizar a lista em tempo real.",error);
+  }finally{
+    refreshingFromRealtime=false;
+  }
 }
 
 function criterionLabel(course){
@@ -364,6 +389,7 @@ async function startEvaluation(){
       evaluationDrafts.unshift(mapRemoteEvaluation(data));
       setPendingInProgress(selectedCourse.code);
       renderDrafts();
+      remoteDb.notifyEvaluationStarted(selectedCourse.code).catch(console.error);
     }catch(error){
       if(error?.code==="23505"){
         toast("Este curso acabou de ser reservado por outro avaliador.");
@@ -412,6 +438,7 @@ async function saveAreaChange(){
       const {data,error}=await supabaseClient.from("evaluations").insert(claimPayload).select().single();
       if(error)throw error;
       reservation=mapRemoteEvaluation(data);evaluationDrafts.unshift(reservation);
+      remoteDb.notifyEvaluationStarted(selectedCourse.code).catch(console.error);
     }
     const previousArea=selectedCourse.area||"Não informada";
     const justification=`O curso ${selectedCourse.name} deve ser transferido da área ${previousArea} para ${targetArea}.${notes?` Como justificativa, foi registrado: ${notes}.`:""}`;
@@ -1060,6 +1087,7 @@ async function initializeApp(){
       buildPendingCourses(previewScope,[],[]);
     }
     renderHistory();renderPending();updateContactBadge();renderDrafts();
+    if(!isPreviewMode)remoteDb.subscribeEvaluationActivity(refreshDashboardFromRealtime);
     const parameters=new URLSearchParams(location.search);
     const resumeFromContact=parameters.get("retomar");
     if(resumeFromContact&&evaluationDrafts.some(draft=>draft.code===resumeFromContact))resumeDraft(resumeFromContact);
