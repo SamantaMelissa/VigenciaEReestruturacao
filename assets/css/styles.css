@@ -41,9 +41,8 @@ html {
 }
 body {
   margin: 0;
-  width: 66.6667%;
-  min-height: 66.6667vh;
-  zoom: 1.5;
+  width: 100%;
+  min-height: 100vh;
   background: #dedede;
   color: var(--ink);
   font-family: "DM Sans", sans-serif;
@@ -2766,17 +2765,15 @@ body {
 }
 body.modal-open { overflow: hidden; }
 
-/* O body usa escala visual de 150%. Os cartões fixos trabalham com 2/3 da
-   altura lógica para continuarem dentro da tela disponível. */
 .contact-modal-card,
 .completed-history-modal .history-modal-card {
-  height: calc(66.6667dvh - 32px);
-  max-height: calc(66.6667dvh - 32px);
+  height: calc(100dvh - 48px);
+  max-height: calc(100dvh - 48px);
 }
 .history-modal-card,
 .scenario-fix-card,
 .profile-card {
-  max-height: calc(66.6667dvh - 32px);
+  max-height: calc(100dvh - 48px);
 }
 
 /* Mesmo componente de busca da tela inicial em todas as listagens. */
@@ -2807,10 +2804,10 @@ body.modal-open { overflow: hidden; }
   .history-actions .shared-search,
   .pending-filters .shared-search { width: 100%; min-width: 0; }
   .completed-history-modal .history-modal-card,
-  .contact-modal-card { height: calc(66.6667dvh - 14px); max-height: calc(66.6667dvh - 14px); }
+  .contact-modal-card { height: calc(100dvh - 14px); max-height: calc(100dvh - 14px); }
   .history-modal-card,
   .scenario-fix-card,
-  .profile-card { max-height: calc(66.6667dvh - 14px); }
+  .profile-card { max-height: calc(100dvh - 14px); }
 }
 .history-modal-head {
   display: flex;
@@ -3778,15 +3775,14 @@ body.modal-open { overflow: hidden; }
   }
 }
 
-/* Deve permanecer no fim do arquivo para prevalecer sobre os ajustes móveis
-   antigos quando a interface está ampliada em 150%. */
+/* Deve permanecer no fim do arquivo para prevalecer sobre os ajustes móveis. */
 @media (max-width: 650px) {
   .shared-search,
   .history-actions .shared-search,
   .pending-filters .shared-search { width: 100%; min-width: 0; }
   .completed-history-modal .history-modal-card,
-  .contact-modal-card { height: calc(66.6667dvh - 14px); max-height: calc(66.6667dvh - 14px); }
+  .contact-modal-card { height: calc(100dvh - 14px); max-height: calc(100dvh - 14px); }
   .history-modal-card,
   .scenario-fix-card,
-  .profile-card { max-height: calc(66.6667dvh - 14px); }
+  .profile-card { max-height: calc(100dvh - 14px); }
 }
