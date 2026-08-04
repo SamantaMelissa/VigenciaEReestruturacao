@@ -97,10 +97,12 @@ async function initializeManager(){
     ]);
     completedEvaluations=completed;
     analysisScope=scope;
+    const completedCodes=new Set(completed.map(item=>String(item.course_code)));
     const areaChanges=completed.filter(item=>item.state?.changeType==="troca_area"||normalize(item.final_result).includes("troca de area"));
     const openValidations=validations.filter(item=>item.status!=="concluido");
+    const evaluationsInProgress=claims.filter(item=>item.status==="em_analise"&&!completedCodes.has(String(item.course_code)));
     $("kpi-completed").textContent=completed.length.toLocaleString("pt-BR");
-    $("kpi-drafts").textContent=claims.length.toLocaleString("pt-BR");
+    $("kpi-drafts").textContent=evaluationsInProgress.length.toLocaleString("pt-BR");
     $("kpi-open").textContent=openValidations.length.toLocaleString("pt-BR");
     $("kpi-validations").textContent=validations.filter(item=>item.status==="concluido").length.toLocaleString("pt-BR");
     $("kpi-area-changes").textContent=areaChanges.length.toLocaleString("pt-BR");

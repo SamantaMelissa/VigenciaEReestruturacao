@@ -192,8 +192,10 @@ async function loadRemoteAppData(){
     row.state=state;
   });
   history=completed.map(mapRemoteEvaluation);
+  const completedCodes=new Set(completed.map(row=>String(row.course_code)));
   evaluationDrafts=drafts
     .filter(row=>row.created_by===appSession.user.id)
+    .filter(row=>!completedCodes.has(String(row.course_code)))
     .map(mapRemoteEvaluation)
     .filter(item=>item.rawState?.validationReady!==true);
   contactQueue=validations;
