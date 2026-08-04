@@ -2828,6 +2828,25 @@ html.full-hd-scale .system-unavailable-card,
 html.full-hd-scale .existing-analysis-card {
   max-height: calc(66.666667dvh - 48px);
 }
+html.full-hd-scale .contact-modal-head {
+  padding: 14px 22px;
+}
+html.full-hd-scale .contact-modal-head h2 {
+  margin: 2px 0;
+  font-size: 17px;
+  line-height: 1.2;
+}
+html.full-hd-scale .contact-modal-head button {
+  font-size: 21px;
+}
+html.full-hd-scale .contact-modal-actions {
+  gap: 8px;
+  padding: 10px 22px;
+}
+html.full-hd-scale .contact-modal-actions .btn {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
 .history-modal-head {
   display: flex;
   justify-content: space-between;
