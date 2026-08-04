@@ -55,6 +55,52 @@ function evaluationObservations(evaluation){
   return [...new Set(notes)].join("\n");
 }
 
+function legacyFragments(text){
+  const pieces=String(text||"").split(/[;\r\n]+/).map(value=>value.trim()).filter(Boolean),grouped=[];
+  const starts=value=>/^(NÃO\s+)?(?:HOUVE|MAIS DE UMA ESCOLA|SOMENTE UMA ESCOLA|O CURSO|A ESCOLA|A CBO|É UMA|NÃO É UMA|O PERFIL|HÁ ALGUMA|NÃO HÁ ALGUMA|A TECNOLOGIA|O DESENHO|OS PADRÕES|É UM CURSO|POSSUI UNIDADES|A DATA|CURSO INATIVO|FORMAÇÃO)/i.test(value);
+  pieces.forEach(piece=>{if(!grouped.length||starts(piece))grouped.push(piece);else grouped[grouped.length-1]+=` ${piece}`});
+  return grouped;
+}
+
+function legacyStatement(raw){
+  const text=normalize(raw),detail=String(raw).match(/[(:]\s*([^:)]+)\)?\s*$/)?.[1]?.trim(),withDetail=statement=>`${statement}${detail?` (${detail})`:""}`;
+  if(text.includes("nao houve oferta continua"))return "Não foi confirmada oferta contínua no período analisado";
+  if(text.includes("houve oferta continua"))return "Foi confirmada oferta contínua no período analisado";
+  if(text.includes("nao houve oferta do curso em algum"))return "Não houve oferta nos anos considerados";
+  if(text.includes("houve oferta do curso em algum"))return "Houve oferta em pelo menos um dos anos considerados";
+  if(text.includes("mais de uma escola"))return withDetail("O título é ofertado por mais de uma escola");
+  if(text.includes("somente uma escola"))return withDetail("O título possui oferta registrada em somente uma escola");
+  if(text.includes("curso nao responde"))return "O curso não foi relacionado aos cenários estratégicos mapeados";
+  if(text.includes("curso responde"))return withDetail("O curso está relacionado aos cenários estratégicos mapeados");
+  if(text.includes("cbo")&&text.includes("nao tem empregabilidade"))return "Não foi identificada empregabilidade suficiente para as ocupações relacionadas";
+  if(text.includes("cbo")&&text.includes("empregabilidade"))return withDetail("As ocupações relacionadas apresentam empregabilidade no mapa de emprego");
+  if(text.includes("nao e uma qualificacao fic sem perfil"))return "A qualificação possui perfil profissional FIC";
+  if(text.includes("e uma qualificacao fic sem perfil"))return "A qualificação FIC ainda não possui perfil profissional FIC";
+  if(text.includes("perfil profissional nao tem mais de 4 anos"))return "O perfil profissional possui até quatro anos";
+  if(text.includes("perfil profissional tem mais de 4 anos"))return "O perfil profissional possui mais de quatro anos";
+  if(text.includes("nao ha alguma tecnologia"))return "Não foram identificadas tecnologias que precisem ser incluídas ou retiradas";
+  if(text.includes("ha alguma tecnologia"))return withDetail("Foram identificadas tecnologias que precisam ser incluídas ou retiradas");
+  if(text.includes("tecnologia")&&text.includes("altera o perfil"))return withDetail("A alteração tecnológica impacta o perfil profissional");
+  if(text.includes("data de abertura")&&text.includes("nao esta entre"))return "A vigência foi aberta fora do período de 2024 a 2025";
+  if(text.includes("data de abertura")&&text.includes("esta entre"))return "A vigência foi aberta entre 2024 e 2025";
+  if(text.includes("escola nao tem uma justificativa")||text.includes("nao tem justificativa tecnica"))return "A escola não apresentou justificativa técnica suficiente para a manutenção do curso";
+  if(text.includes("escola tem uma justificativa")&&String(raw).includes("?"))return "Foi registrada a necessidade de confirmar com a escola uma justificativa técnica para a manutenção do curso";
+  if(text.includes("escola tem uma justificativa"))return "A escola apresentou justificativa técnica para a manutenção do curso";
+  const clean=String(raw).replace(/[?;.]+$/g,"").trim().toLocaleLowerCase("pt-BR");
+  return clean?clean.charAt(0).toLocaleUpperCase("pt-BR")+clean.slice(1):"";
+}
+
+function exportJustification(evaluation){
+  const state=evaluation?.state||{},original=String(evaluation?.justification||"").trim();
+  const isLegacy=Boolean(state.sourceId||state.imported)||/(^|\n)\s*(SIM|NÃO)\s+[—-]/i.test(original)||original.length>30&&original===original.toLocaleUpperCase("pt-BR");
+  if(!isLegacy)return original;
+  const path=state.decisionPath||state.answers||[],statements=path.length
+    ?path.map(step=>legacyStatement(`${step.answer===false?"NÃO ":""}${step.text||""}`)).filter(Boolean)
+    :legacyFragments(original).map(legacyStatement).filter(Boolean);
+  const observation=String(state.observations||"").trim();
+  return [`A análise do curso ${evaluation.course_name} foi conduzida conforme o ${evaluation.criterion_label}.`,statements.length?`${statements.join(". ")}.`:"Não há detalhamento suficiente do percurso na fonte original.",observation?`Como registro adicional, consta: ${observation}.`:"",evaluation.final_result?`Diante das evidências registradas, recomenda-se ${formatDecisionResult(evaluation.final_result).toLocaleLowerCase("pt-BR")}.`:""].filter(Boolean).join(" ").replace(/\s+/g," ").trim();
+}
+
 async function exportManagerWorkbook(){
   if(!analysisScope.length)return;
   if(!window.ExcelJS){toast("Não foi possível carregar o gerador de Excel. Atualize a página e tente novamente.");return}
@@ -72,7 +118,7 @@ async function exportManagerWorkbook(){
     scope.forEach((scopeItem,index)=>{
       const code=String(scopeItem.course_code),course=(window.COURSES_DATA||[]).find(item=>String(item.code)===code)||{},evaluation=latestCompleted.get(code),state=evaluation?.state||{};
       const criterionKey=evaluation?.criterion_key||scopeItem.criterion_key||course.criterion||"regular",pending=!evaluation;
-      const row=sheet.addRow([index+1,criterionKey==="fic"?"FIC":"Regular",code,evaluation?.course_name||scopeItem.course_name||course.name||"",course.hours??"",course.level||"",course.type||"",course.strategy||"",pending?"PENDENTE DE ANÁLISE":evaluation.justification||"",pending?"PENDENTE DE ANÁLISE":String(evaluation.final_result||"NÃO INFORMADO").toLocaleUpperCase("pt-BR"),course.area||state.previousArea||"",course.segment||"",parseBrazilianDate(course.start),state.changeType==="troca_area"?state.targetArea||"":"",pending?"":evaluationObservations(evaluation)]);
+      const row=sheet.addRow([index+1,criterionKey==="fic"?"FIC":"Regular",code,evaluation?.course_name||scopeItem.course_name||course.name||"",course.hours??"",course.level||"",course.type||"",course.strategy||"",pending?"PENDENTE DE ANÁLISE":exportJustification(evaluation),pending?"PENDENTE DE ANÁLISE":String(evaluation.final_result||"NÃO INFORMADO").toLocaleUpperCase("pt-BR"),course.area||state.previousArea||"",course.segment||"",parseBrazilianDate(course.start),state.changeType==="troca_area"?state.targetArea||"":"",pending?"":evaluationObservations(evaluation)]);
       row.height=90;row.eachCell({includeEmpty:true},cell=>{cell.font={name:"Aptos Narrow",size:11};cell.alignment={vertical:"top",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFD9D9D9"}},left:{style:"thin",color:{argb:"FFD9D9D9"}},bottom:{style:"thin",color:{argb:"FFD9D9D9"}},right:{style:"thin",color:{argb:"FFD9D9D9"}}}});
       [1,3,5,6,8,13].forEach(column=>row.getCell(column).alignment={horizontal:"center",vertical:"top",wrapText:true});
       if(row.getCell(13).value instanceof Date)row.getCell(13).numFmt="dd/mm/yyyy";
