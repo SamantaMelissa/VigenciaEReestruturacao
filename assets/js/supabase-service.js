@@ -24,6 +24,14 @@ const legacyCacheKeys=[
 ];
 const clearLegacyCache=()=>legacyCacheKeys.forEach((key)=>localStorage.removeItem(key));
 
+// Aplica a mesma escala visual em monitores Full HD físicos, mesmo quando o
+// Windows usa 125%, 150% ou outra densidade de exibição.
+const physicalScreenWidth=Math.round(window.screen.width*window.devicePixelRatio);
+const physicalScreenHeight=Math.round(window.screen.height*window.devicePixelRatio);
+if(physicalScreenWidth>=1920&&physicalScreenHeight>=1080){
+  document.documentElement.classList.add("full-hd-scale");
+}
+
 function createAuthScreen() {
   if (document.getElementById("auth-screen")) return;
   document.body.insertAdjacentHTML(

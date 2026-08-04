@@ -39,6 +39,9 @@
 html {
   scroll-behavior: smooth;
 }
+html.full-hd-scale {
+  zoom: 1.5;
+}
 body {
   margin: 0;
   width: 100%;
