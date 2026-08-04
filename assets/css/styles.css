@@ -42,6 +42,27 @@ html {
 html.full-hd-scale {
   zoom: 1.5;
 }
+html.full-hd-scale .history-modal,
+html.full-hd-scale .contact-modal,
+html.full-hd-scale .scenario-fix-modal,
+html.full-hd-scale .profile-screen,
+html.full-hd-scale .auth-screen,
+html.full-hd-scale .system-unavailable,
+html.full-hd-scale .existing-analysis-modal {
+  width: 150%;
+  height: 150%;
+  zoom: 0.666667;
+}
+html.full-hd-scale .history-modal-card,
+html.full-hd-scale .contact-modal-card,
+html.full-hd-scale .scenario-fix-card,
+html.full-hd-scale .profile-card {
+  max-height: calc(100dvh - 48px);
+}
+html.full-hd-scale .completed-history-modal .history-modal-card,
+html.full-hd-scale .contact-modal-card {
+  height: min(820px, calc(100dvh - 48px));
+}
 body {
   margin: 0;
   width: 100%;
