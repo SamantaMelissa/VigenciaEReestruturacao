@@ -2171,7 +2171,10 @@ footer {
 
 /* Amplia para o equivalente a 150% em Full HD ou superior quando a escala está próxima de 100%. */
 @media (min-width: 1920px) and (min-height: 900px) and (max-resolution: 1.1dppx) {
-  body {
+  .shell {
+    width: 66.6667%;
+    max-width: none;
+    min-height: 66.6667vh;
     zoom: 1.5;
   }
 }
