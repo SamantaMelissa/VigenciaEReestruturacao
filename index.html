@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=20260804-full-viewport">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260804-zoom-search">
 </head>
 <body>
   <div class="shell">
@@ -176,7 +176,7 @@
           <div class="pending-panel-head">
             <div><span class="section-kicker">CURSOS A FAZER</span><h2>Análises pendentes</h2><p>Use os filtros para organizar o trabalho da equipe.</p></div>
             <div class="pending-filters">
-              <input id="pending-search" placeholder="Buscar curso ou código">
+              <label class="search-box shared-search" for="pending-search"><span>⌕</span><input id="pending-search" autocomplete="off" placeholder="Buscar curso ou código"></label>
               <select id="pending-filter">
                 <option value="todos">Todos os pendentes</option>
                 <option value="retorno_disponivel">Retornos disponíveis</option>

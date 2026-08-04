@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=20260804-full-viewport">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260804-zoom-search">
 </head>
 <body>
   <div class="shell">
@@ -29,7 +29,7 @@
       <section class="history">
         <div class="history-head">
           <div><span class="section-kicker">HISTÓRICO</span><h2>Decisões registradas</h2></div>
-          <div class="history-actions"><input id="history-search" placeholder="Buscar curso, código ou decisão"><button class="btn secondary" id="export-csv">Exportar CSV ↓</button></div>
+          <div class="history-actions"><label class="search-box shared-search" for="history-search"><span>⌕</span><input id="history-search" autocomplete="off" placeholder="Buscar curso, código ou decisão"></label><button class="btn secondary" id="export-csv">Exportar CSV ↓</button></div>
         </div>
         <div class="history-list" id="history-list"></div>
       </section>

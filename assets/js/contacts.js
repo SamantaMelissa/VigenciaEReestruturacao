@@ -46,7 +46,6 @@ function openContact(id){
   $("contact-unit").value=validationUnit(item);
   $("contact-date").value=item.contact_date||"";$("contact-notes").value=item.notes||"";
   $("contact-answer").value=item.school_answer===true?"sim":item.school_answer===false?"nao":"";
-  document.querySelector(".contact-evidence").open=window.innerHeight>=720;
   updateAnswerStatus();$("contact-modal").classList.add("open");$("contact-modal").setAttribute("aria-hidden","false");
   document.body.classList.add("modal-open");
 }

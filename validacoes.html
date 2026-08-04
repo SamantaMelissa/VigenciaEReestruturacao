@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=20260804-full-viewport">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260804-zoom-search">
 </head>
 <body>
   <div class="shell">
@@ -31,7 +31,7 @@
             <div><strong id="contact-done">0</strong><span>Concluídos</span></div>
           </div>
         </div>
-        <div class="contact-toolbar"><input id="contact-search" placeholder="Buscar curso, código ou unidade"><select id="contact-filter"><option value="todos">Todos os status</option><option value="pendente">Pendentes</option><option value="em_contato">Em contato</option><option value="concluido">Concluídos</option></select></div>
+        <div class="contact-toolbar"><label class="search-box shared-search" for="contact-search"><span>⌕</span><input id="contact-search" autocomplete="off" placeholder="Buscar curso, código ou unidade"></label><select id="contact-filter"><option value="todos">Todos os status</option><option value="pendente">Pendentes</option><option value="em_contato">Em contato</option><option value="concluido">Concluídos</option></select></div>
         <div class="validation-section-heading"><div><span class="section-kicker">EM ABERTO</span><h3>Validações que precisam de ação</h3></div><small>Selecione um curso para registrar ou continuar o contato.</small></div>
         <div class="contact-list" id="contact-list"></div>
         <details class="completed-validations" id="completed-validations">
@@ -47,7 +47,7 @@
     <div class="contact-modal-card">
       <div class="contact-modal-head"><div><span class="section-kicker">DOSSIÊ DE VALIDAÇÃO</span><h2 id="contact-modal-title"></h2><p id="contact-modal-code"></p></div><button id="contact-modal-close" aria-label="Fechar">×</button></div>
       <div class="contact-modal-body">
-        <details class="contact-evidence" open><summary><span>Dossiê e evidências</span><small>Mostrar ou ocultar</small></summary><div id="contact-evidence"></div></details>
+        <div class="contact-evidence"><div class="contact-evidence-title">Dossiê e evidências</div><div id="contact-evidence"></div></div>
         <div class="contact-form">
           <label>Status do contato<select id="contact-status"><option value="pendente">Pendente</option><option value="em_contato">Em contato</option><option value="concluido">Concluído</option></select></label>
           <label>Responsável<input id="contact-owner" placeholder="Nome do responsável"></label>
@@ -64,6 +64,6 @@
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-service.js?v=20260804-modal-zoom-fix"></script>
-  <script src="assets/js/contacts.js?v=20260804-responsive-modals"></script>
+  <script src="assets/js/contacts.js?v=20260804-zoom-search"></script>
 </body>
 </html>
