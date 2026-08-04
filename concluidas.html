@@ -29,7 +29,7 @@
       <section class="history">
         <div class="history-head">
           <div><span class="section-kicker">HISTÓRICO</span><h2>Decisões registradas</h2></div>
-          <div class="history-actions"><label class="search-box shared-search" for="history-search"><span>⌕</span><input id="history-search" autocomplete="off" placeholder="Buscar curso, código ou decisão"></label><button class="btn secondary" id="export-csv">Exportar CSV ↓</button></div>
+          <div class="history-actions"><label class="search-box shared-search" for="history-search"><span>⌕</span><input id="history-search" autocomplete="off" placeholder="Buscar curso, código ou decisão"></label><button class="btn secondary" id="export-csv">Exportar Excel ↓</button></div>
         </div>
         <div class="history-list" id="history-list"></div>
       </section>
@@ -54,7 +54,8 @@
   <script src="assets/data/courses-data.js"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="assets/js/supabase-service.js?v=20260804-fullhd-scale"></script>
-  <script src="assets/js/concluidas.js?v=20260804-compact-modal"></script>
+  <script src="assets/js/concluidas.js?v=20260804-export-modelo"></script>
 </body>
 </html>
