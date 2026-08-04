@@ -51,8 +51,9 @@ textarea {
   font: inherit;
 }
 .shell {
-  max-width: 1500px;
-  margin: auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   min-height: 100vh;
   background: #f4f4f4;
   box-shadow: 0 0 80px rgba(20, 20, 20, 0.12);
@@ -2166,16 +2167,6 @@ footer {
   }
   .draft-delete {
     display: none;
-  }
-}
-
-/* Amplia para o equivalente a 150% em Full HD ou superior quando a escala está próxima de 100%. */
-@media (min-width: 1920px) and (min-height: 900px) and (max-resolution: 1.1dppx) {
-  .shell {
-    width: 66.6667%;
-    max-width: none;
-    min-height: 66.6667vh;
-    zoom: 1.5;
   }
 }
 
