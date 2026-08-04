@@ -283,10 +283,10 @@ create policy "Authenticated users create validations"
 on public.school_validations for insert to authenticated
 with check (created_by = auth.uid());
 
-create policy "Authenticated users update validations"
+create policy "Managers update validations"
 on public.school_validations for update to authenticated
-using (true)
-with check (true);
+using (public.current_user_role() in ('gestor', 'admin'))
+with check (public.current_user_role() in ('gestor', 'admin'));
 
 create policy "Admins delete validations"
 on public.school_validations for delete to authenticated
@@ -335,6 +335,9 @@ declare
   calculated_status public.evaluation_status;
 begin
   if auth.uid() is null then raise exception 'Usuário não autenticado.'; end if;
+  if public.current_user_role() not in ('gestor', 'admin') then
+    raise exception 'Somente gestores podem registrar o retorno da escola.';
+  end if;
   select * into validation from public.school_validations where id = p_validation_id for update;
   if not found then raise exception 'Validação não encontrada.'; end if;
   select * into target_evaluation from public.evaluations

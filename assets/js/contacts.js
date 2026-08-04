@@ -99,6 +99,7 @@ async function initializeContacts(){
   try{
     await requireSupabaseSession();
     if(isPreviewMode){location.replace("index.html");return}
+    if(!["gestor","admin"].includes(window.appProfile?.role)){location.replace("index.html");return}
     contactQueue=await remoteDb.validations();
     render();
   }catch(error){handleSupabaseError(error);showSystemUnavailable()}

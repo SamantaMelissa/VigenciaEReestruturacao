@@ -52,6 +52,7 @@ let evaluationDrafts=[];
 let pendingCourses=[];
 let claimingCourse=false;
 let refreshingFromRealtime=false;
+let validationHandoffInProgress=false;
 let savingResult=false;
 let savingDraft=false;
 let savingAreaChange=false;
@@ -193,8 +194,11 @@ async function loadRemoteAppData(){
   history=completed.map(mapRemoteEvaluation);
   evaluationDrafts=drafts
     .filter(row=>row.created_by===appSession.user.id)
-    .map(mapRemoteEvaluation);
+    .map(mapRemoteEvaluation)
+    .filter(item=>item.rawState?.validationReady!==true);
   contactQueue=validations;
+  const validationCodes=new Set(contactQueue.filter(item=>["pendente","em_contato"].includes(item.status)).map(item=>String(item.course_code)));
+  evaluationDrafts=evaluationDrafts.filter(item=>!validationCodes.has(String(item.code)));
   analysisScope.forEach(item=>{
     const course=COURSES.find(entry=>String(entry.code)===String(item.course_code));
     if(course&&["fic","regular"].includes(item.criterion_key))course.criterion=item.criterion_key;
@@ -562,7 +566,7 @@ function recommendedAnswer(step){
 }
 function renderQuestion(){
   const criterion=CRITERIA[selectedCourse.criterion],q=criterion.questions[currentQuestion];
-  if(currentQuestion===5)queueSchoolValidation();
+  if(currentQuestion===5){handoffSchoolValidation();return}
   $("quiz-counter").textContent=`Pergunta ${answers.length+1}`;
   $("progress-bar").style.width=`${Math.min(92,(answers.length+1)/(selectedCourse.criterion==="fic"?7:14)*100)}%`;
   $("question-text").textContent=q.text;
@@ -609,27 +613,17 @@ function answer(value){
     :"";
   if(observation)questionObservations[currentQuestion]=observation;
   answers.push({step:currentQuestion,answer:value,text:q.text,observation,scenarios:value?scenarios:[]});
-  if(currentQuestion===5){
-    const contact=contactQueue.find(item=>(item.course_code||item.code)===selectedCourse.code&&item.status!=="concluido");
-    if(contact){
-      const contactUpdate={
-        decision_trail:answers.map(a=>({step:a.step,answer:a.answer,text:a.text,scenarios:a.scenarios||[]})),
-        school_answer:value,status:"concluido",concluded_at:new Date().toISOString()
-      };
-      supabaseClient.from("school_validations").update(contactUpdate).eq("id",contact.id).select().single()
-        .then(({data,error})=>{
-          if(error){handleSupabaseError(error);return}
-          contactQueue=contactQueue.map(item=>item.id===data.id?data:item);updateContactBadge();
-        });
-    }
-  }
   const next=value?q.yes:q.no;
   if(typeof next==="string"){finalResult=next;showResult();return}
   currentQuestion=next;
   $("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";
   renderQuestion();
 }
-function backQuestion(){if(!answers.length)return;currentQuestion=answers.pop().step;$("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";renderQuestion()}
+function backQuestion(){
+  if(!answers.length)return;
+  if(answers[answers.length-1]?.step===5){toast("O retorno da escola foi registrado pelo gestor e não pode ser alterado nesta análise.");return}
+  currentQuestion=answers.pop().step;$("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";renderQuestion();
+}
 function returnToLastQuestion(){
   if(!answers.length)return;
   currentQuestion=answers.pop().step;
@@ -986,7 +980,8 @@ async function removeDraft(code,notify){
   }
 }
 async function queueSchoolValidation(){
-  if(isPreviewMode)return;
+  if(isPreviewMode)return null;
+  const draft=evaluationDrafts.find(item=>String(item.code)===String(selectedCourse.code));
   const snapshot={
     code:selectedCourse.code,
     name:selectedCourse.name,
@@ -1002,20 +997,48 @@ async function queueSchoolValidation(){
     const payload={
       course_code:snapshot.code,course_name:snapshot.name,criterion_key:snapshot.criterionKey,
       criterion_label:snapshot.criterion,units:snapshot.units,enrollments:snapshot.enrollments,
-      reason_question:snapshot.question,decision_trail:snapshot.trail,status:"pendente",created_by:appSession.user.id
+      reason_question:snapshot.question,decision_trail:snapshot.trail,status:"pendente",created_by:appSession.user.id,
+      evaluation_id:draft?.remoteId||null
     };
     const remoteExisting=contactQueue.find(item=>item.course_code===snapshot.code&&item.status!=="concluido");
     let saved;
-    if(remoteExisting?.id){
-      const {data,error}=await supabaseClient.from("school_validations").update(payload).eq("id",remoteExisting.id).select().single();
-      if(error)throw error;saved=data;
-    }else{
+    if(remoteExisting?.id){saved=remoteExisting}else{
       const {data,error}=await supabaseClient.from("school_validations").insert(payload).select().single();
       if(error)throw error;saved=data;
     }
     contactQueue=contactQueue.filter(item=>item.id!==saved.id);contactQueue.unshift(saved);
     updateContactBadge();
-  }catch(error){if(!handleSupabaseError(error))toast("Não foi possível criar a validação com a unidade.")}
+    return saved;
+  }catch(error){if(!handleSupabaseError(error))toast("Não foi possível criar a validação com a unidade.");throw error}
+}
+async function handoffSchoolValidation(){
+  if(validationHandoffInProgress)return;
+  validationHandoffInProgress=true;
+  document.querySelectorAll(".decision").forEach(button=>button.disabled=true);
+  $("question-text").textContent="Encaminhando o curso para validação do gestor...";
+  try{
+    if(isPreviewMode){toast("Modo de demonstração: validação não encaminhada.");reset();return}
+    const validation=await queueSchoolValidation();
+    const draft=evaluationDrafts.find(item=>String(item.code)===String(selectedCourse.code));
+    if(draft?.remoteId){
+      const state={...(draft.rawState||{}),answers:answers.map(item=>({...item})),decisionPath:answers.map(item=>({...item})),
+        questionObservations:{...questionObservations},scenarioSelections:{...scenarioSelections},
+        enrollments:{...selectedCourse.enrollments},units:[...(selectedCourse.unitCodes||[])],
+        awaitingSchoolValidation:true,validationReady:false,validationId:validation?.id};
+      const {error}=await supabaseClient.from("evaluations").update({status:"rascunho",current_question:5,state})
+        .eq("id",draft.remoteId);
+      if(error)throw error;
+    }
+    evaluationDrafts=evaluationDrafts.filter(item=>String(item.code)!==String(selectedCourse.code));
+    pendingCourses=pendingCourses.map(item=>String(item.course_code)===String(selectedCourse.code)?{...item,status:"em_validacao",canResume:false}:item);
+    renderPending();renderDrafts();
+    reset();toast("Curso encaminhado ao gestor e bloqueado até o retorno da escola.");
+  }catch(error){
+    if(!handleSupabaseError(error))toast("Não foi possível encaminhar o curso para validação.");
+  }finally{
+    validationHandoffInProgress=false;
+    document.querySelectorAll(".decision").forEach(button=>button.disabled=false);
+  }
 }
 function updateContactBadge(){
   const pending=contactQueue.filter(item=>item.status==="pendente"||item.status==="em_contato").length;
