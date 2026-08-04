@@ -46,10 +46,12 @@ function openContact(id){
   $("contact-unit").value=validationUnit(item);
   $("contact-date").value=item.contact_date||"";$("contact-notes").value=item.notes||"";
   $("contact-answer").value=item.school_answer===true?"sim":item.school_answer===false?"nao":"";
+  document.querySelector(".contact-evidence").open=window.innerHeight>=720;
   updateAnswerStatus();$("contact-modal").classList.add("open");$("contact-modal").setAttribute("aria-hidden","false");
+  document.body.classList.add("modal-open");
 }
 
-function closeContact(){$("contact-modal").classList.remove("open");$("contact-modal").setAttribute("aria-hidden","true");activeContactId=null}
+function closeContact(){$("contact-modal").classList.remove("open");$("contact-modal").setAttribute("aria-hidden","true");document.body.classList.remove("modal-open");activeContactId=null}
 function formPayload(){
   const answer=$("contact-answer").value;
   return {
@@ -86,7 +88,7 @@ function updateAnswerStatus(){
 async function deleteContact(){
   if(!activeContactId)return;
   const {error}=await supabaseClient.from("school_validations").delete().eq("id",activeContactId);
-  if(error){if(!handleSupabaseError(error))toast("Somente administradores podem excluir uma pendência.");return}
+  if(error){if(!handleSupabaseError(error))toast("Não foi possível excluir a pendência.");return}
   contactQueue=contactQueue.filter(item=>item.id!==activeContactId);render();closeContact();toast("Pendência removida.");
 }
 function toast(text){$("toast").textContent=text;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2500)}
@@ -94,12 +96,12 @@ function toast(text){$("toast").textContent=text;$("toast").classList.add("show"
 $("contact-search").oninput=render;$("contact-filter").onchange=()=>{$("completed-validations").open=$("contact-filter").value==="concluido";render()};$("contact-modal-close").onclick=closeContact;
 $("contact-save").onclick=saveContact;$("contact-delete").onclick=deleteContact;$("contact-modal").onclick=event=>{if(event.target===$("contact-modal"))closeContact()};
 $("contact-answer").onchange=updateAnswerStatus;
+document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("contact-modal").classList.contains("open"))closeContact()});
 
 async function initializeContacts(){
   try{
     await requireSupabaseSession();
     if(isPreviewMode){location.replace("index.html");return}
-    if(!["gestor","admin"].includes(window.appProfile?.role)){location.replace("index.html");return}
     contactQueue=await remoteDb.validations();
     render();
   }catch(error){handleSupabaseError(error);showSystemUnavailable()}

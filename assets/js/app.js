@@ -621,7 +621,7 @@ function answer(value){
 }
 function backQuestion(){
   if(!answers.length)return;
-  if(answers[answers.length-1]?.step===5){toast("O retorno da escola foi registrado pelo gestor e não pode ser alterado nesta análise.");return}
+  if(answers[answers.length-1]?.step===5){toast("O retorno da escola já foi registrado na Central de Validações e não pode ser alterado nesta análise.");return}
   currentQuestion=answers.pop().step;$("save-progress").classList.remove("saved");$("save-progress").textContent="← Salvar e voltar";renderQuestion();
 }
 function returnToLastQuestion(){
@@ -1015,7 +1015,7 @@ async function handoffSchoolValidation(){
   if(validationHandoffInProgress)return;
   validationHandoffInProgress=true;
   document.querySelectorAll(".decision").forEach(button=>button.disabled=true);
-  $("question-text").textContent="Encaminhando o curso para validação do gestor...";
+  $("question-text").textContent="Encaminhando o curso para validação com a unidade...";
   try{
     if(isPreviewMode){toast("Modo de demonstração: validação não encaminhada.");reset();return}
     const validation=await queueSchoolValidation();
@@ -1032,7 +1032,7 @@ async function handoffSchoolValidation(){
     evaluationDrafts=evaluationDrafts.filter(item=>String(item.code)!==String(selectedCourse.code));
     pendingCourses=pendingCourses.map(item=>String(item.course_code)===String(selectedCourse.code)?{...item,status:"em_validacao",canResume:false}:item);
     renderPending();renderDrafts();
-    reset();toast("Curso encaminhado ao gestor e bloqueado até o retorno da escola.");
+    reset();toast("Curso bloqueado até que a equipe registre o retorno da escola.");
   }catch(error){
     if(!handleSupabaseError(error))toast("Não foi possível encaminhar o curso para validação.");
   }finally{

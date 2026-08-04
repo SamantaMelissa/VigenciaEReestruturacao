@@ -211,7 +211,7 @@ function createProfileScreen() {
       </section>
     </div>`);
   const screen=document.getElementById("profile-screen");
-  const close=()=>{screen.classList.remove("open");screen.setAttribute("aria-hidden","true")};
+  const close=()=>{screen.classList.remove("open");screen.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")};
   document.getElementById("profile-close").onclick=close;
   screen.onclick=event=>{if(event.target===screen)close()};
   document.addEventListener("keydown",event=>{if(event.key==="Escape"&&screen.classList.contains("open"))close()});
@@ -247,6 +247,7 @@ function openProfileScreen() {
   document.querySelectorAll(".profile-feedback").forEach(item=>{item.textContent="";item.classList.remove("success")});
   const screen=document.getElementById("profile-screen");
   screen.classList.add("open");screen.setAttribute("aria-hidden","false");
+  document.body.classList.add("modal-open");
   document.getElementById("profile-name").focus();
 }
 
