@@ -32,9 +32,9 @@ function openHistory(id){
   $("history-justification").innerHTML=`<details class="justification-disclosure" open><summary><span>Justificativa consolidada</span><small>Visualizar parecer</small></summary><div><p>${escapeHtml(item.justification||"Justificativa não registrada.").replace(/\n/g,"<br>")}</p></div></details>`;
   const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
   $("history-modal-edit").hidden=!canEdit;$("history-modal-edit").href=`index.html?historico=${encodeURIComponent(item.id)}`;
-  $("history-modal").classList.add("open");$("history-modal").setAttribute("aria-hidden","false");
+  $("history-modal").classList.add("open");$("history-modal").setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
 }
-function closeHistory(){$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true")}
+function closeHistory(){$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
 function exportCsv(){
   if(!completed.length)return;
   const rows=[["Data","Código","Curso","Critério","Resultado","Justificativa"],...completed.map(item=>[item.date,item.code,item.name,item.criterion,formatResult(item.result),item.justification])];
@@ -62,4 +62,5 @@ async function initialize(){
   }catch(error){handleSupabaseError(error);showSystemUnavailable()}
 }
 $("history-search").oninput=render;$("export-csv").onclick=exportCsv;$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
+document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("history-modal").classList.contains("open"))closeHistory()});
 initialize();

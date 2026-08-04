@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260804-compact-modal">
 </head>
 <body>
   <div class="shell">
@@ -37,15 +37,17 @@
     <footer><span>SENAI · Fábrica de Cursos</span><span>Histórico de análises concluídas</span></footer>
   </div>
   <div class="toast" id="toast"></div>
-  <div class="history-modal" id="history-modal" aria-hidden="true">
+  <div class="history-modal completed-history-modal" id="history-modal" aria-hidden="true">
     <div class="history-modal-card">
       <div class="history-modal-head"><div><h2 id="history-modal-title"></h2><p id="history-modal-code"></p></div><button id="history-modal-close" aria-label="Fechar">×</button></div>
       <div class="history-result-strip" id="history-result-strip"></div>
-      <div class="history-modal-body">
-        <div class="history-overview" id="history-overview"></div>
-        <div class="history-process"><span class="section-kicker">PROCESSO EVIDENCIADO</span><h3>Caminho da decisão</h3><div id="history-process-list"></div></div>
+      <div class="completed-history-scroll">
+        <div class="history-modal-body">
+          <div class="history-overview" id="history-overview"></div>
+          <div class="history-process"><span class="section-kicker">PROCESSO EVIDENCIADO</span><h3>Caminho da decisão</h3><div id="history-process-list"></div></div>
+        </div>
+        <div class="history-justification" id="history-justification"></div>
       </div>
-      <div class="history-justification" id="history-justification"></div>
       <div class="history-modal-actions"><button class="btn secondary" id="history-modal-ok">Fechar consulta</button><a class="btn primary" id="history-modal-edit" href="index.html">Editar avaliação</a></div>
     </div>
   </div>
@@ -53,6 +55,6 @@
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-service.js"></script>
-  <script src="assets/js/concluidas.js"></script>
+  <script src="assets/js/concluidas.js?v=20260804-compact-modal"></script>
 </body>
 </html>

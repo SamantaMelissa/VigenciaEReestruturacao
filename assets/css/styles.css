@@ -2727,6 +2727,29 @@ body {
   background: #fff;
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
 }
+.completed-history-modal .history-modal-card {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  height: min(820px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+}
+.completed-history-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.completed-history-modal .history-modal-head,
+.completed-history-modal .history-result-strip,
+.completed-history-modal .history-modal-actions {
+  flex-shrink: 0;
+}
+.completed-history-modal .history-modal-actions {
+  position: static;
+  box-shadow: 0 -8px 20px rgba(20, 20, 20, 0.06);
+}
+body.modal-open { overflow: hidden; }
 .history-modal-head {
   display: flex;
   justify-content: space-between;
@@ -3351,6 +3374,16 @@ body {
 @media (max-width: 650px) {
   .home-pending {
     margin-top: -58px;
+  }
+  .completed-history-modal .history-modal-card {
+    height: calc(100dvh - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+  .completed-history-modal .history-modal-head {
+    padding: 14px 16px;
+  }
+  .completed-history-modal .history-result-strip {
+    padding: 10px 16px;
   }
   .pending-home-heading {
     align-items: stretch;
