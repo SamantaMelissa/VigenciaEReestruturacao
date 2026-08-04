@@ -1318,6 +1318,29 @@ footer {
 .manager-hero-actions .btn {
   min-width: 210px;
 }
+.manager-hero .manager-updated {
+  border: 1px solid rgba(255,255,255,.2);
+  border-left: 3px solid rgba(255,255,255,.72);
+  background: rgba(17,17,22,.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+.manager-hero .manager-hero-actions .btn.primary {
+  border: 1px solid rgba(255,255,255,.85);
+  background: #fff;
+  color: #771726;
+  box-shadow: 0 12px 30px rgba(12,8,12,.2);
+}
+.manager-hero .manager-hero-actions .btn.primary:hover {
+  border-color: #f3e6e8;
+  background: #f7f1f2;
+  color: #55101a;
+  box-shadow: 0 15px 34px rgba(12,8,12,.26);
+}
+.manager-hero .manager-hero-actions .btn.primary:disabled {
+  background: #e8e3e4;
+  color: #74686a;
+  box-shadow: none;
+}
 .manager-dashboard {
   width: min(1180px, 90%);
   margin: -34px auto 0;
