@@ -55,6 +55,30 @@ function evaluationObservations(evaluation){
   return [...new Set(notes)].join("\n");
 }
 
+const MAPPED_AREA_NAMES={1:"Desenvolvimento de software",2:"Redes e Infraestrutura",3:"Segurança Cibernética",4:"Cloud e DevOps",5:"Dados"};
+function mappedAreas(evaluation){
+  if(!evaluation)return "PENDENTE DE ANÁLISE";
+  const state=evaluation.state||{},values=[];
+  (state.decisionPath||state.answers||[]).forEach(step=>values.push(...(step?.scenarios||[])));
+  Object.values(state.scenarioSelections||{}).forEach(selected=>values.push(...(Array.isArray(selected)?selected:[])));
+  const original=`${evaluation.justification||""} ${state.justificationOriginal||""}`,normalizedOriginal=normalize(original),numbers=[];
+  for(const match of normalizedOriginal.matchAll(/cenarios?\s+mapeados?\s*\(([^)]+)\)/g))numbers.push(...(match[1].match(/[1-5]/g)||[]));
+  for(const match of normalizedOriginal.matchAll(/cenario\s*([1-5])/g))numbers.push(match[1]);
+  numbers.forEach(number=>values.push(MAPPED_AREA_NAMES[number]));
+  const canonical=values.map(value=>{
+    const key=normalize(value);
+    if(key.includes("desenvolvimento"))return MAPPED_AREA_NAMES[1];
+    if(key.includes("redes")||key.includes("infraestrutura"))return MAPPED_AREA_NAMES[2];
+    if(key.includes("seguranca")||key.includes("cyber"))return MAPPED_AREA_NAMES[3];
+    if(key.includes("cloud")||key.includes("devops")||key.includes("nuvem"))return MAPPED_AREA_NAMES[4];
+    if(key.includes("dados"))return MAPPED_AREA_NAMES[5];
+    return String(value||"").trim();
+  }).filter(Boolean);
+  const unique=[...new Set(canonical)];
+  if(unique.length)return unique.join("; ");
+  return normalizedOriginal.includes("nao responde")||normalizedOriginal.includes("nao foi relacionado")?"Nenhuma área mapeada":"Não informada";
+}
+
 function legacyFragments(text){
   const pieces=String(text||"").split(/[;\r\n]+/).map(value=>value.trim()).filter(Boolean),grouped=[];
   const starts=value=>/^(NÃO\s+)?(?:HOUVE|MAIS DE UMA ESCOLA|SOMENTE UMA ESCOLA|O CURSO|A ESCOLA|A CBO|É UMA|NÃO É UMA|O PERFIL|HÁ ALGUMA|NÃO HÁ ALGUMA|A TECNOLOGIA|O DESENHO|OS PADRÕES|É UM CURSO|POSSUI UNIDADES|A DATA|CURSO INATIVO|FORMAÇÃO)/i.test(value);
@@ -111,20 +135,20 @@ async function exportManagerWorkbook(){
     const scope=analysisScope.filter(item=>item.is_analyzable).sort((a,b)=>String(a.course_name).localeCompare(String(b.course_name),"pt-BR"));
     const workbook=new ExcelJS.Workbook();workbook.creator="Radar de Cursos";workbook.created=new Date();
     const sheet=workbook.addWorksheet("Tabela Modelo - Definição da Si",{views:[{state:"frozen",ySplit:1}]});
-    const widths=[8.7109375,26.85546875,25.5703125,53.140625,12.85546875,13.140625,24.7109375,21.5703125,71.5703125,92.28515625,48.85546875,35.140625,20.42578125,46.140625,8.7109375];
-    sheet.columns=["ORDEM","Tabela de Análise","Código do Curso","Curso","C. H.","Nível","Tipo de Curso","Estratégia","Justificativa","Situação do Curso","Área","Segmento de Área","Início de vigência","Alterar Segmento ou Área","OBSERVAÇÕES"].map((header,index)=>({header,key:`column${index+1}`,width:widths[index]}));
+    const widths=[8.7109375,26.85546875,25.5703125,53.140625,12.85546875,13.140625,24.7109375,21.5703125,71.5703125,92.28515625,44,48.85546875,35.140625,20.42578125,46.140625,8.7109375];
+    sheet.columns=["ORDEM","Tabela de Análise","Código do Curso","Curso","C. H.","Nível","Tipo de Curso","Estratégia","Justificativa","Situação do Curso","Áreas mapeadas","Área","Segmento de Área","Início de vigência","Alterar Segmento ou Área","OBSERVAÇÕES"].map((header,index)=>({header,key:`column${index+1}`,width:widths[index]}));
     const header=sheet.getRow(1);header.height=56.25;
     header.eachCell(cell=>{cell.font={name:"Aptos Narrow",size:14,bold:true,color:{argb:"FF000000"}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFFFFF"}};cell.alignment={horizontal:"center",vertical:"middle",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FF808080"}},left:{style:"thin",color:{argb:"FF808080"}},bottom:{style:"thin",color:{argb:"FF808080"}},right:{style:"thin",color:{argb:"FF808080"}}}});
     scope.forEach((scopeItem,index)=>{
       const code=String(scopeItem.course_code),course=(window.COURSES_DATA||[]).find(item=>String(item.code)===code)||{},evaluation=latestCompleted.get(code),state=evaluation?.state||{};
       const criterionKey=evaluation?.criterion_key||scopeItem.criterion_key||course.criterion||"regular",pending=!evaluation;
-      const row=sheet.addRow([index+1,criterionKey==="fic"?"FIC":"Regular",code,evaluation?.course_name||scopeItem.course_name||course.name||"",course.hours??"",course.level||"",course.type||"",course.strategy||"",pending?"PENDENTE DE ANÁLISE":exportJustification(evaluation),pending?"PENDENTE DE ANÁLISE":String(evaluation.final_result||"NÃO INFORMADO").toLocaleUpperCase("pt-BR"),course.area||state.previousArea||"",course.segment||"",parseBrazilianDate(course.start),state.changeType==="troca_area"?state.targetArea||"":"",pending?"":evaluationObservations(evaluation)]);
+      const row=sheet.addRow([index+1,criterionKey==="fic"?"FIC":"Regular",code,evaluation?.course_name||scopeItem.course_name||course.name||"",course.hours??"",course.level||"",course.type||"",course.strategy||"",pending?"PENDENTE DE ANÁLISE":exportJustification(evaluation),pending?"PENDENTE DE ANÁLISE":String(evaluation.final_result||"NÃO INFORMADO").toLocaleUpperCase("pt-BR"),mappedAreas(evaluation),course.area||state.previousArea||"",course.segment||"",parseBrazilianDate(course.start),state.changeType==="troca_area"?state.targetArea||"":"",pending?"":evaluationObservations(evaluation)]);
       row.height=90;row.eachCell({includeEmpty:true},cell=>{cell.font={name:"Aptos Narrow",size:11};cell.alignment={vertical:"top",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFD9D9D9"}},left:{style:"thin",color:{argb:"FFD9D9D9"}},bottom:{style:"thin",color:{argb:"FFD9D9D9"}},right:{style:"thin",color:{argb:"FFD9D9D9"}}}});
-      [1,3,5,6,8,13].forEach(column=>row.getCell(column).alignment={horizontal:"center",vertical:"top",wrapText:true});
-      if(row.getCell(13).value instanceof Date)row.getCell(13).numFmt="dd/mm/yyyy";
+      [1,3,5,6,8,14].forEach(column=>row.getCell(column).alignment={horizontal:"center",vertical:"top",wrapText:true});
+      if(row.getCell(14).value instanceof Date)row.getCell(14).numFmt="dd/mm/yyyy";
       if(pending)row.eachCell(cell=>{cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFF2CC"}}});
     });
-    sheet.autoFilter="B1:O1";sheet.pageSetup={orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
+    sheet.autoFilter="B1:P1";sheet.pageSetup={orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
     const buffer=await workbook.xlsx.writeBuffer(),url=URL.createObjectURL(new Blob([buffer],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
     const link=document.createElement("a");link.href=url;link.download=`Definição da Situação dos Cursos - ${new Date().toISOString().slice(0,10)}.xlsx`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(error){console.error(error);toast("Não foi possível gerar o Excel.")}
