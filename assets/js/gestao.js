@@ -56,9 +56,19 @@ function evaluationObservations(evaluation){
 }
 
 const MAPPED_AREA_NAMES={1:"Desenvolvimento de software",2:"Redes e Infraestrutura",3:"Segurança Cibernética",4:"Cloud e DevOps",5:"Dados"};
+function mappedAreasByTitle(courseName){
+  const title=normalize(courseName),areas=[];
+  if(/cloud|nuvem|devops/.test(title))areas.push(MAPPED_AREA_NAMES[4]);
+  if(/ciber|cyber|seguranca|pentest|forense|vulnerabilidade|lgpd/.test(title))areas.push(MAPPED_AREA_NAMES[3]);
+  if(/banco de dados|data |dados|business intelligence|power bi|tableau|sql|excel|big data|analytics/.test(title))areas.push(MAPPED_AREA_NAMES[5]);
+  if(/rede|infraestrutura|servidor|hardware|suporte tecnico|fibra optica|linux|windows/.test(title))areas.push(MAPPED_AREA_NAMES[2]);
+  if(/desenvolv|programa|software|web|aplicativo|app |mobile|java|python|php|javascript|logica|algoritmo|iot|jogos digitais/.test(title))areas.push(MAPPED_AREA_NAMES[1]);
+  return [...new Set(areas)];
+}
 function mappedAreas(evaluation){
   if(!evaluation)return "PENDENTE DE ANÁLISE";
   const state=evaluation.state||{},values=[];
+  values.push(...(Array.isArray(state.mappedAreasByTitle)?state.mappedAreasByTitle:[]));
   (state.decisionPath||state.answers||[]).forEach(step=>values.push(...(step?.scenarios||[])));
   Object.values(state.scenarioSelections||{}).forEach(selected=>values.push(...(Array.isArray(selected)?selected:[])));
   const original=`${evaluation.justification||""} ${state.justificationOriginal||""}`,normalizedOriginal=normalize(original),numbers=[];
@@ -76,6 +86,9 @@ function mappedAreas(evaluation){
   }).filter(Boolean);
   const unique=[...new Set(canonical)];
   if(unique.length)return unique.join("; ");
+  if(normalize(evaluation.final_result).includes("fechar"))return "FECHAR VIGÊNCIA";
+  const inferred=mappedAreasByTitle(evaluation.course_name);
+  if(inferred.length)return inferred.join("; ");
   return normalizedOriginal.includes("nao responde")||normalizedOriginal.includes("nao foi relacionado")?"Nenhuma área mapeada":"Não informada";
 }
 

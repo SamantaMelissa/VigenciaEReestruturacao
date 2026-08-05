@@ -7,7 +7,7 @@ let completed=[];
 
 function mapEvaluation(row){
   const state=row.state||{};
-  return {id:row.id,code:row.course_code,name:row.course_name,criterionKey:row.criterion_key,criterion:row.criterion_label,result:row.final_result||"",justification:row.justification||"",date:new Date(row.updated_at).toLocaleString("pt-BR"),source:state.source||"Avaliação realizada no sistema",sourceId:state.sourceId,decisionPath:state.decisionPath||state.answers||[],scenarioSelections:state.scenarioSelections||{},enrollments:state.enrollments||{},units:state.units||[],observations:state.observations||"",questionObservations:state.questionObservations||{},changeType:state.changeType||"",targetArea:state.targetArea||"",previousArea:state.previousArea||"",createdBy:row.created_by};
+  return {id:row.id,code:row.course_code,name:row.course_name,criterionKey:row.criterion_key,criterion:row.criterion_label,result:row.final_result||"",justification:row.justification||"",date:new Date(row.updated_at).toLocaleString("pt-BR"),source:state.source||"Avaliação realizada no sistema",sourceId:state.sourceId,decisionPath:state.decisionPath||state.answers||[],scenarioSelections:state.scenarioSelections||{},mappedAreasByTitle:state.mappedAreasByTitle||[],enrollments:state.enrollments||{},units:state.units||[],observations:state.observations||"",questionObservations:state.questionObservations||{},changeType:state.changeType||"",targetArea:state.targetArea||"",previousArea:state.previousArea||"",createdBy:row.created_by};
 }
 function resultClass(result){const value=normalize(result);return value.includes("reestruturar")?"reestruturar":value.includes("fechar")?"fechar":"manter"}
 function render(){
@@ -44,8 +44,17 @@ function exportObservation(item){
   return [...new Set(notes)].join("\n");
 }
 const MAPPED_AREA_NAMES={1:"Desenvolvimento de software",2:"Redes e Infraestrutura",3:"Segurança Cibernética",4:"Cloud e DevOps",5:"Dados"};
+function mappedAreasByTitle(courseName){
+  const title=normalize(courseName),areas=[];
+  if(/cloud|nuvem|devops/.test(title))areas.push(MAPPED_AREA_NAMES[4]);
+  if(/ciber|cyber|seguranca|pentest|forense|vulnerabilidade|lgpd/.test(title))areas.push(MAPPED_AREA_NAMES[3]);
+  if(/banco de dados|data |dados|business intelligence|power bi|tableau|sql|excel|big data|analytics/.test(title))areas.push(MAPPED_AREA_NAMES[5]);
+  if(/rede|infraestrutura|servidor|hardware|suporte tecnico|fibra optica|linux|windows/.test(title))areas.push(MAPPED_AREA_NAMES[2]);
+  if(/desenvolv|programa|software|web|aplicativo|app |mobile|java|python|php|javascript|logica|algoritmo|iot|jogos digitais/.test(title))areas.push(MAPPED_AREA_NAMES[1]);
+  return [...new Set(areas)];
+}
 function mappedAreas(item){
-  const values=[];
+  const values=[...(Array.isArray(item.mappedAreasByTitle)?item.mappedAreasByTitle:[])];
   (item.decisionPath||[]).forEach(step=>values.push(...(step?.scenarios||[])));
   Object.values(item.scenarioSelections||{}).forEach(selected=>values.push(...(Array.isArray(selected)?selected:[])));
   const original=String(item.justification||""),normalizedOriginal=normalize(original),numbers=[];
@@ -55,6 +64,9 @@ function mappedAreas(item){
   const canonical=values.map(value=>{const key=normalize(value);if(key.includes("desenvolvimento"))return MAPPED_AREA_NAMES[1];if(key.includes("redes")||key.includes("infraestrutura"))return MAPPED_AREA_NAMES[2];if(key.includes("seguranca")||key.includes("cyber"))return MAPPED_AREA_NAMES[3];if(key.includes("cloud")||key.includes("devops")||key.includes("nuvem"))return MAPPED_AREA_NAMES[4];if(key.includes("dados"))return MAPPED_AREA_NAMES[5];return String(value||"").trim()}).filter(Boolean);
   const unique=[...new Set(canonical)];
   if(unique.length)return unique.join("; ");
+  if(normalize(item.result).includes("fechar"))return "FECHAR VIGÊNCIA";
+  const inferred=mappedAreasByTitle(item.name);
+  if(inferred.length)return inferred.join("; ");
   return normalizedOriginal.includes("nao responde")||normalizedOriginal.includes("nao foi relacionado")?"Nenhuma área mapeada":"Não informada";
 }
 async function exportExcel(){
