@@ -214,22 +214,24 @@
       </div>
     </div>
   </div>
-  <div class="history-modal" id="history-modal" aria-hidden="true">
+  <div class="history-modal completed-history-modal" id="history-modal" aria-hidden="true">
     <div class="history-modal-card">
       <div class="history-modal-head">
         <div><h2 id="history-modal-title"></h2><p id="history-modal-code"></p></div>
         <button id="history-modal-close" aria-label="Fechar">×</button>
       </div>
       <div class="history-result-strip" id="history-result-strip"></div>
-      <div class="history-modal-body">
-        <div class="history-overview" id="history-overview"></div>
-        <div class="history-process">
-          <span class="section-kicker">PROCESSO EVIDENCIADO</span>
-          <h3>Caminho da decisão</h3>
-          <div id="history-process-list"></div>
+      <div class="completed-history-scroll">
+        <div class="history-modal-body">
+          <div class="history-overview" id="history-overview"></div>
+          <div class="history-process">
+            <span class="section-kicker">PROCESSO EVIDENCIADO</span>
+            <h3>Caminho da decisão</h3>
+            <div id="history-process-list"></div>
+          </div>
         </div>
+        <div class="history-justification" id="history-justification"></div>
       </div>
-      <div class="history-justification" id="history-justification"></div>
       <div class="history-modal-actions">
         <button class="btn secondary" id="history-modal-ok">Fechar consulta</button>
         <button class="btn secondary" id="history-modal-reevaluate">Reavaliar curso</button>
@@ -298,6 +300,6 @@
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-service.js?v=20260805-reevaluate"></script>
-  <script src="assets/js/app.js?v=20260805-reevaluate"></script>
+  <script src="assets/js/app.js?v=20260805-unified-history-modal"></script>
 </body>
 </html>

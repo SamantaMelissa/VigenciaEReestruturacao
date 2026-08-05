@@ -817,10 +817,10 @@ function openHistory(id){
       <div><p>${escapeHtml(executiveJustification).replace(/\n/g,"<br>")}</p></div>
     </details>`;
   $("history-modal-edit").hidden=!canEdit;
-  $("history-modal").classList.add("open");$("history-modal").setAttribute("aria-hidden","false");
+  $("history-modal").classList.add("open");$("history-modal").setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
   if($("history-scenario-edit"))$("history-scenario-edit").onclick=()=>editHistoryScenario(item);
 }
-function closeHistory(){activeHistoryId=null;$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true")}
+function closeHistory(){activeHistoryId=null;$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
 async function reevaluateHistoryEvaluation(){
   const item=history.find(entry=>String(entry.id)===String(activeHistoryId));if(!item)return;
   if(!confirm(`Reavaliar ${item.name}? As respostas e a decisão atuais serão apagadas para que o curso seja analisado novamente.`))return;

@@ -22,7 +22,44 @@ function decisionStatement(item){
       .replace(/\b(fic|cbo|ia|iot|cnct|uc|ucs)\b/gi,value=>value.toLocaleUpperCase("pt-BR"));
     return source?source.charAt(0).toLocaleUpperCase("pt-BR")+source.slice(1):"";
   }
-  return `${String(item.text||"Etapa registrada").replace(/\?$/g,"")} — Resposta: ${item.answer?"Sim":"Não"}`;
+  const text=normalize(item.text),yes=item.answer;
+  let statement;
+  if(text.includes("oferta continua"))statement=yes?"Foi confirmada oferta contínua no período analisado":"Não foi confirmada oferta contínua em todo o período analisado";
+  else if(text.includes("oferta do curso em algum"))statement=yes?"Há registro de oferta em pelo menos um dos anos considerados":"Não há registro de oferta nos anos considerados";
+  else if(text.includes("mais de uma escola"))statement=yes?"O título é ofertado por mais de uma escola":"O título possui oferta registrada em somente uma escola";
+  else if(text.includes("cenarios mapeados"))statement=yes?"O curso está relacionado aos cenários estratégicos mapeados":"O curso não foi relacionado aos cenários estratégicos mapeados";
+  else if(text.includes("justificativa tecnica"))statement=yes?"A escola apresentou justificativa técnica para a manutenção do curso":"A escola não apresentou justificativa técnica suficiente para a manutenção do curso";
+  else if(text.includes("empregabilidade"))statement=yes?"As ocupações relacionadas apresentam empregabilidade no mapa de emprego":"Não foi identificada empregabilidade suficiente para as ocupações relacionadas";
+  else if(text.includes("sem perfil profissional"))statement=yes?"A qualificação FIC ainda não possui perfil profissional FIC":"A qualificação possui perfil profissional FIC";
+  else if(text.includes("perfil profissional tem mais de 4 anos"))statement=yes?"O perfil profissional possui mais de quatro anos":"O perfil profissional possui até quatro anos";
+  else if(text.includes("tecnologia que necessita"))statement=yes?"Foram identificadas tecnologias que precisam ser incluídas ou retiradas":"Não foram identificadas tecnologias que precisem ser incluídas ou retiradas";
+  else if(text.includes("altera o perfil profissional"))statement=yes?"A alteração tecnológica impacta o perfil profissional":"A alteração tecnológica não impacta o perfil profissional";
+  else if(text.includes("desenho curricular esta vinculado"))statement=yes?"O desenho curricular está vinculado ao perfil profissional":"O desenho curricular precisa ser revisto para se vincular ao perfil profissional";
+  else if(text.includes("padroes de desempenho"))statement=yes?"Os padrões de desempenho estão descritos como capacidades observáveis":"Os padrões de desempenho precisam ser reescritos como capacidades observáveis";
+  else if(text.includes("aprendizagem ou tecnico"))statement=yes?"Trata-se de curso de aprendizagem ou técnico":"O curso não pertence às modalidades de aprendizagem ou técnico";
+  else if(text.includes("unidades curriculares comuns"))statement=yes?"O curso possui unidades curriculares comuns":"O curso precisa incluir unidades curriculares comuns";
+  else if(text.includes("data de abertura de vigencia"))statement=yes?"A vigência foi aberta entre 2024 e 2025":"A vigência foi aberta fora do período de 2024 a 2025";
+  else statement=`A condição “${String(item.text||"").replace(/\?$/g,"")}” ${yes?"foi confirmada":"não foi confirmada"}`;
+  return statement.replace(/\.+$/g,"").trim();
+}
+function buildDecisionNarrative(path,result,courseName,criterion,extraObservation=""){
+  const statements=[];
+  (path||[]).forEach(item=>{
+    const statement=decisionStatement(item);
+    if(statement)statements.push(`${statement}${item.scenarios?.length?`: ${item.scenarios.join(", ")}`:""}.`);
+    if(item.answer===true&&normalize(item.text).includes("cenarios mapeados")&&!item.scenarios?.length)statements.push("O cenário específico não foi registrado.");
+    if(item.observation){
+      const itemText=normalize(item.text);
+      if(itemText.includes("tecnologia que necessita"))statements.push(`Para subsidiar a decisão, foram registradas as seguintes tecnologias para inclusão ou retirada: ${item.observation}.`);
+      else if(itemText.includes("justificativa tecnica"))statements.push(`A justificativa técnica registrada pela escola foi: ${item.observation}.`);
+      else statements.push(`Como complemento técnico, foi registrado: ${item.observation}.`);
+    }
+  });
+  const introduction=`A análise do curso ${courseName} foi conduzida conforme o ${criterion}.`;
+  const evidence=statements.length?` ${statements.join(" ")}`:" Não há detalhamento suficiente do percurso na fonte original.";
+  const extra=extraObservation?` Como registro adicional, consta: ${extraObservation}.`:"";
+  const conclusion=result?` Diante das evidências registradas, recomenda-se ${formatResult(result).toLocaleLowerCase("pt-BR")}.`:"";
+  return `${introduction}${evidence}${extra}${conclusion}`.replace(/\s+/g," ").trim();
 }
 
 function mapEvaluation(row){
@@ -48,12 +85,19 @@ function openHistory(id){
   $("history-result-strip").className=`history-result-strip ${resultClass(item.result)}`;
   $("history-result-strip").innerHTML=`<span>Decisão registrada</span><strong>${escapeHtml(formatResult(item.result))}</strong>`;
   const enrollments=Object.keys(item.enrollments).length?item.enrollments:(course?.enrollments||{}),units=item.units.length?item.units:(course?.unitCodes||[]);
-  $("history-overview").innerHTML=`<div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div><div><span>Origem</span><strong>${escapeHtml(item.source)}</strong></div><div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div><div><span>Unidades ofertantes</span><strong>${units.length?units.map(formatUnit).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
-  const processItems=item.decisionPath.length?item.decisionPath:parseImportedDecisionPath(item.justification);
-  $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>`<div class="process-step"><span>${step.step||index+1}</span><div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenários:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.observation?`<p class="process-observation"><b>Observação:</b> ${escapeHtml(step.observation)}</p>`:""}</div></div>`).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
-  $("history-justification").innerHTML=`<details class="justification-disclosure" open><summary><span>Justificativa consolidada</span><small>Visualizar parecer</small></summary><div><p>${escapeHtml(item.justification||"Justificativa não registrada.").replace(/\n/g,"<br>")}</p></div></details>`;
+  const areaDisplay=mappedAreas(item);
+  $("history-overview").innerHTML=`<div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div><div><span>Origem</span><strong>${escapeHtml(item.source)}</strong></div><div><span>Área mapeada / Desfecho</span><strong>${escapeHtml(areaDisplay)}</strong></div><div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div><div><span>Unidades ofertantes</span><strong>${units.length?units.map(formatUnit).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
+  let processItems=(item.decisionPath||[]).map(step=>({...step,scenarios:step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[])}));
+  if(!processItems.length&&item.justification)processItems=parseImportedDecisionPath(item.justification);
   const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
+  $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>`<div class="process-step"><span>${step.step||index+1}</span><div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.step===4&&step.answer===true&&!step.scenarios?.length?`<p class="process-scenarios missing"><b>Cenário não informado.</b></p>`:""}${step.observation?`<p class="process-observation"><b>${normalize(step.text).includes("tecnologia que necessita")?"Tecnologias para inclusão ou retirada":"Registro complementar"}:</b> ${escapeHtml(step.observation)}</p>`:""}</div></div>`).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
+  const legacyQuestionnaire=/(^|\n)\s*(SIM|NÃO)\s+—/i.test(item.justification||"");
+  const recordedScenarios=processItems.flatMap(step=>step.scenarios||[]);
+  const justificationMissingScenario=recordedScenarios.some(scenario=>!normalize(item.justification).includes(normalize(scenario)));
+  const executiveJustification=(item.sourceId||legacyQuestionnaire||justificationMissingScenario)?buildDecisionNarrative(processItems,item.result,item.name,item.criterion,item.observations):(item.justification||buildDecisionNarrative(processItems,item.result,item.name,item.criterion,item.observations));
+  $("history-justification").innerHTML=`<details class="justification-disclosure" open><summary><span>Justificativa consolidada</span><small>Visualizar parecer</small></summary><div><p>${escapeHtml(executiveJustification).replace(/\n/g,"<br>")}</p></div></details>`;
   $("history-modal-edit").hidden=!canEdit;$("history-modal-edit").href=`index.html?historico=${encodeURIComponent(item.id)}`;
+  $("history-modal-assign-area").hidden=!/^não informada$|^nenhuma área mapeada$/i.test(areaDisplay);
   $("history-modal").classList.add("open");$("history-modal").setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
 }
 function closeHistory(){activeHistoryId=null;$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
@@ -66,6 +110,23 @@ async function reevaluateCourse(){
     location.href=`index.html?analisar=${encodeURIComponent(item.code)}`;
   }catch(error){if(!handleSupabaseError(error))toast("Não foi possível preparar a reavaliação.")}
   finally{button.disabled=false;button.textContent=label}
+}
+function openAssignArea(){
+  if(!activeHistoryId)return;
+  $("assign-area-select").value="";$("assign-area-save").disabled=true;
+  $("assign-area-modal").classList.add("open");$("assign-area-modal").setAttribute("aria-hidden","false");
+}
+function closeAssignArea(){
+  $("assign-area-modal").classList.remove("open");$("assign-area-modal").setAttribute("aria-hidden","true");
+}
+async function saveAssignedArea(){
+  const item=completed.find(entry=>String(entry.id)===String(activeHistoryId)),area=$("assign-area-select").value;if(!item||!area)return;
+  const button=$("assign-area-save"),label=button.textContent;button.disabled=true;button.textContent="Salvando…";
+  try{
+    await remoteDb.assignEvaluationMappedArea(item.id,area);
+    item.mappedAreasByTitle=[area];closeAssignArea();openHistory(item.id);toast("Área atribuída à avaliação.");
+  }catch(error){if(!handleSupabaseError(error))toast("Não foi possível atribuir a área.")}
+  finally{button.textContent=label;button.disabled=!$("assign-area-select").value}
 }
 function parseBrazilianDate(value){
   const match=String(value||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!match)return value||"";
@@ -149,6 +210,6 @@ async function initialize(){
     render();
   }catch(error){handleSupabaseError(error);showSystemUnavailable()}
 }
-$("history-search").oninput=render;$("export-csv").onclick=exportExcel;$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-reevaluate").onclick=reevaluateCourse;$("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
+$("history-search").oninput=render;$("export-csv").onclick=exportExcel;$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-assign-area").onclick=openAssignArea;$("history-modal-reevaluate").onclick=reevaluateCourse;$("assign-area-select").onchange=()=>$("assign-area-save").disabled=!$("assign-area-select").value;$("assign-area-save").onclick=saveAssignedArea;$("assign-area-close").onclick=closeAssignArea;$("assign-area-cancel").onclick=closeAssignArea;$("assign-area-modal").onclick=event=>{if(event.target===$("assign-area-modal"))closeAssignArea()};$("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
 document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("history-modal").classList.contains("open"))closeHistory()});
 initialize();

@@ -442,4 +442,12 @@ window.remoteDb = {
     if (error) throw error;
     return Array.isArray(data) ? data[0] : data;
   },
+  async assignEvaluationMappedArea(evaluationId, mappedArea) {
+    const { data, error } = await window.supabaseClient.rpc("assign_evaluation_mapped_area", {
+      p_evaluation_id: evaluationId,
+      p_mapped_area: mappedArea,
+    });
+    if (error) throw error;
+    return Array.isArray(data) ? data[0] : data;
+  },
 };
