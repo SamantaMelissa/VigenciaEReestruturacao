@@ -4,6 +4,26 @@ const escapeHtml=text=>String(text??"").replace(/[&<>"']/g,char=>({"&":"&amp;","
 const formatResult=text=>{const value=String(text||"").trim().toLocaleLowerCase("pt-BR");return value?value.charAt(0).toLocaleUpperCase("pt-BR")+value.slice(1):"Não informado"};
 const formatUnit=code=>{const digits=String(code??"").replace(/\D/g,"");return digits.length===3?`${digits[0]}.${digits.slice(1)}`:String(code??"")};
 let completed=[];
+let activeHistoryId=null;
+
+function parseImportedDecisionPath(justification){
+  const fragments=String(justification||"").split(/[;\r\n]+/).map(text=>text.trim()).filter(Boolean);
+  const startsDecision=text=>/^(NÃO\s+)?(?:HOUVE|MAIS DE UMA ESCOLA|SOMENTE UMA ESCOLA|O CURSO|A ESCOLA|A CBO|É UMA|NÃO É UMA|O PERFIL|HÁ ALGUMA|NÃO HÁ ALGUMA|A TECNOLOGIA|O DESENHO|OS PADRÕES|É UM CURSO|POSSUI UNIDADES|A DATA|CURSO INATIVO)/i.test(text);
+  const grouped=[];
+  fragments.forEach(fragment=>{
+    if(!grouped.length||startsDecision(fragment))grouped.push(fragment);
+    else grouped[grouped.length-1]=`${grouped[grouped.length-1]} ${fragment}`;
+  });
+  return grouped.map((text,index)=>({step:index+1,text,answer:null}));
+}
+function decisionStatement(item){
+  if(typeof item.answer!=="boolean"){
+    const source=String(item.text||"").replace(/[;?]+$/g,"").trim().toLocaleLowerCase("pt-BR")
+      .replace(/\b(fic|cbo|ia|iot|cnct|uc|ucs)\b/gi,value=>value.toLocaleUpperCase("pt-BR"));
+    return source?source.charAt(0).toLocaleUpperCase("pt-BR")+source.slice(1):"";
+  }
+  return `${String(item.text||"Etapa registrada").replace(/\?$/g,"")} — Resposta: ${item.answer?"Sim":"Não"}`;
+}
 
 function mapEvaluation(row){
   const state=row.state||{};
@@ -22,19 +42,31 @@ function render(){
 }
 function openHistory(id){
   const item=completed.find(entry=>String(entry.id)===String(id));if(!item)return;
+  activeHistoryId=item.id;
   const course=(window.COURSES_DATA||[]).find(entry=>String(entry.code)===String(item.code));
   $("history-modal-title").textContent=item.name;$("history-modal-code").textContent=`Código ${item.code} · ${item.source}`;
   $("history-result-strip").className=`history-result-strip ${resultClass(item.result)}`;
   $("history-result-strip").innerHTML=`<span>Decisão registrada</span><strong>${escapeHtml(formatResult(item.result))}</strong>`;
   const enrollments=Object.keys(item.enrollments).length?item.enrollments:(course?.enrollments||{}),units=item.units.length?item.units:(course?.unitCodes||[]);
   $("history-overview").innerHTML=`<div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div><div><span>Origem</span><strong>${escapeHtml(item.source)}</strong></div><div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div><div><span>Unidades ofertantes</span><strong>${units.length?units.map(formatUnit).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
-  $("history-process-list").innerHTML=item.decisionPath.length?item.decisionPath.map((step,index)=>`<div class="process-step"><span>${step.step||index+1}</span><div><strong>${escapeHtml(step.text||"Etapa registrada")}</strong><p>${typeof step.answer==="boolean"?(step.answer?"Resposta: Sim":"Resposta: Não"):""}</p>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenários:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.observation?`<p class="process-observation"><b>Observação:</b> ${escapeHtml(step.observation)}</p>`:""}</div></div>`).join(""):`<div class="process-empty">O registro não contém o detalhamento das perguntas percorridas.</div>`;
+  const processItems=item.decisionPath.length?item.decisionPath:parseImportedDecisionPath(item.justification);
+  $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>`<div class="process-step"><span>${step.step||index+1}</span><div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenários:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.observation?`<p class="process-observation"><b>Observação:</b> ${escapeHtml(step.observation)}</p>`:""}</div></div>`).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
   $("history-justification").innerHTML=`<details class="justification-disclosure" open><summary><span>Justificativa consolidada</span><small>Visualizar parecer</small></summary><div><p>${escapeHtml(item.justification||"Justificativa não registrada.").replace(/\n/g,"<br>")}</p></div></details>`;
   const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
   $("history-modal-edit").hidden=!canEdit;$("history-modal-edit").href=`index.html?historico=${encodeURIComponent(item.id)}`;
   $("history-modal").classList.add("open");$("history-modal").setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
 }
-function closeHistory(){$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
+function closeHistory(){activeHistoryId=null;$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
+async function reevaluateCourse(){
+  const item=completed.find(entry=>String(entry.id)===String(activeHistoryId));if(!item)return;
+  if(!confirm(`Reavaliar ${item.name}? As respostas e a decisão atuais serão apagadas para que o curso seja analisado novamente.`))return;
+  const button=$("history-modal-reevaluate"),label=button.textContent;button.disabled=true;button.textContent="Preparando reavaliação…";
+  try{
+    await remoteDb.reopenCompletedEvaluation(item.id);
+    location.href=`index.html?analisar=${encodeURIComponent(item.code)}`;
+  }catch(error){if(!handleSupabaseError(error))toast("Não foi possível preparar a reavaliação.")}
+  finally{button.disabled=false;button.textContent=label}
+}
 function parseBrazilianDate(value){
   const match=String(value||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!match)return value||"";
   return new Date(Number(match[3]),Number(match[2])-1,Number(match[1]));
@@ -117,6 +149,6 @@ async function initialize(){
     render();
   }catch(error){handleSupabaseError(error);showSystemUnavailable()}
 }
-$("history-search").oninput=render;$("export-csv").onclick=exportExcel;$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
+$("history-search").oninput=render;$("export-csv").onclick=exportExcel;$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-reevaluate").onclick=reevaluateCourse;$("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
 document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("history-modal").classList.contains("open"))closeHistory()});
 initialize();

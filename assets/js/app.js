@@ -821,6 +821,16 @@ function openHistory(id){
   if($("history-scenario-edit"))$("history-scenario-edit").onclick=()=>editHistoryScenario(item);
 }
 function closeHistory(){activeHistoryId=null;$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true")}
+async function reevaluateHistoryEvaluation(){
+  const item=history.find(entry=>String(entry.id)===String(activeHistoryId));if(!item)return;
+  if(!confirm(`Reavaliar ${item.name}? As respostas e a decisão atuais serão apagadas para que o curso seja analisado novamente.`))return;
+  const button=$("history-modal-reevaluate"),label=button.textContent;button.disabled=true;button.textContent="Preparando reavaliação…";
+  try{
+    await remoteDb.reopenCompletedEvaluation(item.remoteId||item.id);
+    location.href=`index.html?analisar=${encodeURIComponent(item.code)}`;
+  }catch(error){if(!handleSupabaseError(error))toast("Não foi possível preparar a reavaliação.")}
+  finally{button.disabled=false;button.textContent=label}
+}
 function editHistoryEvaluation(){
   const item=history.find(entry=>String(entry.id)===String(activeHistoryId));
   const course=item&&COURSES.find(entry=>String(entry.code)===String(item.code));
@@ -1078,7 +1088,7 @@ $("quiz-back").onclick=backQuestion;$("restart").onclick=reset;$("result-back").
 if($("history-search"))$("history-search").oninput=renderHistory;
 if($("export-csv"))$("export-csv").onclick=exportCsv;
 $("pending-search").oninput=renderPending;$("pending-filter").onchange=renderPending;
-$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;
+$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-reevaluate").onclick=reevaluateHistoryEvaluation;
 $("history-modal-edit").onclick=editHistoryEvaluation;
 $("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
 $("scenario-fix-options").querySelectorAll("button").forEach(button=>button.onclick=()=>{

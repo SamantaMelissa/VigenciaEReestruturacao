@@ -435,4 +435,11 @@ window.remoteDb = {
     if (error) throw error;
     return data;
   },
+  async reopenCompletedEvaluation(evaluationId) {
+    const { data, error } = await window.supabaseClient.rpc("reopen_completed_evaluation", {
+      p_evaluation_id: evaluationId,
+    });
+    if (error) throw error;
+    return Array.isArray(data) ? data[0] : data;
+  },
 };
