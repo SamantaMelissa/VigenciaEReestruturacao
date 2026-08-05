@@ -67,6 +67,9 @@ function mappedAreasByTitle(courseName){
 }
 function mappedAreas(evaluation){
   if(!evaluation)return "PENDENTE DE ANÁLISE";
+  const normalizedResult=normalize(evaluation.final_result);
+  if(normalizedResult.includes("fechar"))return "FECHAR VIGÊNCIA";
+  if(normalizedResult.includes("troca de area")||normalizedResult.includes("trocar area")||evaluation.state?.changeType==="troca_area")return "TROCA DE ÁREA";
   const state=evaluation.state||{},values=[];
   values.push(...(Array.isArray(state.mappedAreasByTitle)?state.mappedAreasByTitle:[]));
   (state.decisionPath||state.answers||[]).forEach(step=>values.push(...(step?.scenarios||[])));
@@ -86,7 +89,6 @@ function mappedAreas(evaluation){
   }).filter(Boolean);
   const unique=[...new Set(canonical)];
   if(unique.length)return unique.join("; ");
-  if(normalize(evaluation.final_result).includes("fechar"))return "FECHAR VIGÊNCIA";
   const inferred=mappedAreasByTitle(evaluation.course_name);
   if(inferred.length)return inferred.join("; ");
   return normalizedOriginal.includes("nao responde")||normalizedOriginal.includes("nao foi relacionado")?"Nenhuma área mapeada":"Não informada";
@@ -149,7 +151,7 @@ async function exportManagerWorkbook(){
     const workbook=new ExcelJS.Workbook();workbook.creator="Radar de Cursos";workbook.created=new Date();
     const sheet=workbook.addWorksheet("Tabela Modelo - Definição da Si",{views:[{state:"frozen",ySplit:1}]});
     const widths=[8.7109375,26.85546875,25.5703125,53.140625,12.85546875,13.140625,24.7109375,21.5703125,71.5703125,92.28515625,44,48.85546875,35.140625,20.42578125,46.140625,8.7109375];
-    sheet.columns=["ORDEM","Tabela de Análise","Código do Curso","Curso","C. H.","Nível","Tipo de Curso","Estratégia","Justificativa","Situação do Curso","Áreas mapeadas","Área","Segmento de Área","Início de vigência","Alterar Segmento ou Área","OBSERVAÇÕES"].map((header,index)=>({header,key:`column${index+1}`,width:widths[index]}));
+    sheet.columns=["ORDEM","Tabela de Análise","Código do Curso","Curso","C. H.","Nível","Tipo de Curso","Estratégia","Justificativa","Situação do Curso","Áreas mapeadas / Desfecho","Área","Segmento de Área","Início de vigência","Alterar Segmento ou Área","OBSERVAÇÕES"].map((header,index)=>({header,key:`column${index+1}`,width:widths[index]}));
     const header=sheet.getRow(1);header.height=56.25;
     header.eachCell(cell=>{cell.font={name:"Aptos Narrow",size:14,bold:true,color:{argb:"FF000000"}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFFFFF"}};cell.alignment={horizontal:"center",vertical:"middle",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FF808080"}},left:{style:"thin",color:{argb:"FF808080"}},bottom:{style:"thin",color:{argb:"FF808080"}},right:{style:"thin",color:{argb:"FF808080"}}}});
     scope.forEach((scopeItem,index)=>{
