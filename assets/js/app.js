@@ -792,13 +792,20 @@ function openHistory(id){
     <div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div>
     <div><span>Unidades ofertantes</span><strong>${units&&units.length?units.map(formatUnitCode).map(escapeHtml).join(", "):"Não registradas"}</strong></div>
     ${item.changeType==="troca_area"?`<div><span>Área anterior</span><strong>${escapeHtml(item.previousArea||course?.area||"Não informada")}</strong></div><div><span>Nova área de atuação</span><strong>${escapeHtml(item.targetArea||"Não informada")}</strong></div>`:""}`;
-  let processItems=(item.decisionPath||[]).map(step=>({
-    ...step,
-    scenarios:step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[])
-  }));
+  let processItems=(item.decisionPath||[]).map(step=>{
+    const isAreaStep=Number(step.step)===4||normalize(step.text).includes("cenarios mapeados");
+    const recordedScenarios=step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[]);
+    const savedAreas=Array.isArray(item.rawState?.mappedAreasByTitle)?item.rawState.mappedAreasByTitle:[];
+    return {...step,scenarios:isAreaStep&&!recordedScenarios.length&&savedAreas.length?savedAreas:recordedScenarios};
+  });
   if(!processItems.length&&item.justification){
     processItems=parseImportedDecisionPath(item.justification);
   }
+  const savedMappedAreas=Array.isArray(item.rawState?.mappedAreasByTitle)?item.rawState.mappedAreasByTitle:[];
+  if(savedMappedAreas.length)processItems=processItems.map(step=>{
+    const isAreaStep=Number(step.step)===4||normalize(step.text).includes("cenarios mapeados");
+    return isAreaStep&&!step.scenarios?.length?{...step,scenarios:savedMappedAreas}:step;
+  });
   const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
   $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>`
     <div class="process-step">

@@ -89,10 +89,15 @@ function openHistory(id){
   $("history-overview").innerHTML=`<div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div><div><span>Origem</span><strong>${escapeHtml(item.source)}</strong></div><div><span>Área mapeada / Desfecho</span><strong>${escapeHtml(areaDisplay)}</strong></div><div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div><div><span>Unidades ofertantes</span><strong>${units.length?units.map(formatUnit).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
   let processItems=(item.decisionPath||[]).map(step=>{
     const isAreaStep=Number(step.step)===4||normalize(step.text).includes("cenarios mapeados");
-    const scenarios=item.mappedAreaAssignedManually&&isAreaStep?item.mappedAreasByTitle:(step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[]));
+    const recordedScenarios=step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[]);
+    const scenarios=isAreaStep&&item.mappedAreasByTitle.length&&(item.mappedAreaAssignedManually||!recordedScenarios.length)?item.mappedAreasByTitle:recordedScenarios;
     return {...step,scenarios};
   });
   if(!processItems.length&&item.justification)processItems=parseImportedDecisionPath(item.justification);
+  if(item.mappedAreasByTitle.length)processItems=processItems.map(step=>{
+    const isAreaStep=Number(step.step)===4||normalize(step.text).includes("cenarios mapeados");
+    return isAreaStep&&!step.scenarios?.length?{...step,scenarios:item.mappedAreasByTitle}:step;
+  });
   const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
   const canAssignArea=!normalize(item.result).includes("fechar")&&!normalize(item.result).includes("troca de area")&&item.changeType!=="troca_area";
   $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>{const isAreaStep=Number(step.step)===4||normalize(step.text).includes("cenarios mapeados");return `<div class="process-step"><span>${step.step||index+1}</span><div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}${isAreaStep&&canAssignArea?' <button type="button" data-history-area-edit>Alterar área</button>':""}</p>`:""}${isAreaStep&&!step.scenarios?.length&&canAssignArea?`<p class="process-scenarios missing"><b>Área não informada.</b> <button type="button" data-history-area-edit>Incluir área</button></p>`:""}${step.observation?`<p class="process-observation"><b>${normalize(step.text).includes("tecnologia que necessita")?"Tecnologias para inclusão ou retirada":"Registro complementar"}:</b> ${escapeHtml(step.observation)}</p>`:""}</div></div>`}).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
