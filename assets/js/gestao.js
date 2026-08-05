@@ -70,6 +70,8 @@ function mappedAreas(evaluation){
   const normalizedResult=normalize(evaluation.final_result);
   if(normalizedResult.includes("fechar"))return "FECHAR VIGÊNCIA";
   if(normalizedResult.includes("troca de area")||normalizedResult.includes("trocar area")||evaluation.state?.changeType==="troca_area")return "TROCA DE ÁREA";
+  const titleAreas=mappedAreasByTitle(evaluation.course_name);
+  if(normalizedResult.includes("manter")&&titleAreas.length)return titleAreas.join("; ");
   const state=evaluation.state||{},values=[];
   values.push(...(Array.isArray(state.mappedAreasByTitle)?state.mappedAreasByTitle:[]));
   (state.decisionPath||state.answers||[]).forEach(step=>values.push(...(step?.scenarios||[])));
@@ -89,8 +91,7 @@ function mappedAreas(evaluation){
   }).filter(Boolean);
   const unique=[...new Set(canonical)];
   if(unique.length)return unique.join("; ");
-  const inferred=mappedAreasByTitle(evaluation.course_name);
-  if(inferred.length)return inferred.join("; ");
+  if(titleAreas.length)return titleAreas.join("; ");
   return normalizedOriginal.includes("nao responde")||normalizedOriginal.includes("nao foi relacionado")?"Nenhuma área mapeada":"Não informada";
 }
 

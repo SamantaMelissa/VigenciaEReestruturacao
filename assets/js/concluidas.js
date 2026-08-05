@@ -57,6 +57,8 @@ function mappedAreas(item){
   const normalizedResult=normalize(item.result);
   if(normalizedResult.includes("fechar"))return "FECHAR VIGÊNCIA";
   if(normalizedResult.includes("troca de area")||normalizedResult.includes("trocar area")||item.changeType==="troca_area")return "TROCA DE ÁREA";
+  const titleAreas=mappedAreasByTitle(item.name);
+  if(normalizedResult.includes("manter")&&titleAreas.length)return titleAreas.join("; ");
   const values=[...(Array.isArray(item.mappedAreasByTitle)?item.mappedAreasByTitle:[])];
   (item.decisionPath||[]).forEach(step=>values.push(...(step?.scenarios||[])));
   Object.values(item.scenarioSelections||{}).forEach(selected=>values.push(...(Array.isArray(selected)?selected:[])));
@@ -67,8 +69,7 @@ function mappedAreas(item){
   const canonical=values.map(value=>{const key=normalize(value);if(key.includes("desenvolvimento"))return MAPPED_AREA_NAMES[1];if(key.includes("redes")||key.includes("infraestrutura"))return MAPPED_AREA_NAMES[2];if(key.includes("seguranca")||key.includes("cyber"))return MAPPED_AREA_NAMES[3];if(key.includes("cloud")||key.includes("devops")||key.includes("nuvem"))return MAPPED_AREA_NAMES[4];if(key.includes("dados"))return MAPPED_AREA_NAMES[5];return String(value||"").trim()}).filter(Boolean);
   const unique=[...new Set(canonical)];
   if(unique.length)return unique.join("; ");
-  const inferred=mappedAreasByTitle(item.name);
-  if(inferred.length)return inferred.join("; ");
+  if(titleAreas.length)return titleAreas.join("; ");
   return normalizedOriginal.includes("nao responde")||normalizedOriginal.includes("nao foi relacionado")?"Nenhuma área mapeada":"Não informada";
 }
 async function exportExcel(){
