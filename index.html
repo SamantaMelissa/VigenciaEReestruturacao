@@ -239,6 +239,13 @@
       </div>
     </div>
   </div>
+  <div class="scenario-fix-modal" id="reevaluation-confirm-modal" aria-hidden="true">
+    <div class="scenario-fix-card" role="dialog" aria-modal="true" aria-labelledby="reevaluation-confirm-title">
+      <div class="scenario-fix-head"><div><span>REAVALIAR CURSO</span><h2 id="reevaluation-confirm-title">Confirmar nova avaliação</h2></div><button type="button" id="reevaluation-confirm-close" aria-label="Fechar">×</button></div>
+      <p id="reevaluation-confirm-message"></p>
+      <div class="scenario-fix-actions"><button class="btn secondary" type="button" id="reevaluation-confirm-cancel">Cancelar</button><button class="btn primary" type="button" id="reevaluation-confirm-submit">Confirmar reavaliação</button></div>
+    </div>
+  </div>
   <div class="scenario-fix-modal" id="scenario-fix-modal" aria-hidden="true">
     <div class="scenario-fix-card" role="dialog" aria-modal="true" aria-labelledby="scenario-fix-title">
       <div class="scenario-fix-head">
@@ -300,6 +307,6 @@
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-service.js?v=20260805-reevaluate"></script>
-  <script src="assets/js/app.js?v=20260805-area-question-only"></script>
+  <script src="assets/js/app.js?v=20260805-reevaluation-modal"></script>
 </body>
 </html>

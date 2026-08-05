@@ -828,10 +828,18 @@ function openHistory(id){
   if($("history-scenario-edit"))$("history-scenario-edit").onclick=()=>editHistoryScenario(item);
 }
 function closeHistory(){activeHistoryId=null;$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
-async function reevaluateHistoryEvaluation(){
+function reevaluateHistoryEvaluation(){
   const item=history.find(entry=>String(entry.id)===String(activeHistoryId));if(!item)return;
-  if(!confirm(`Reavaliar ${item.name}? As respostas e a decisão atuais serão apagadas para que o curso seja analisado novamente.`))return;
-  const button=$("history-modal-reevaluate"),label=button.textContent;button.disabled=true;button.textContent="Preparando reavaliação…";
+  $("reevaluation-confirm-message").textContent=`O curso ${item.name} voltará para a fila de análises. As respostas, a justificativa e a decisão atuais serão removidas para que uma nova avaliação seja realizada.`;
+  $("reevaluation-confirm-modal").classList.add("open");$("reevaluation-confirm-modal").setAttribute("aria-hidden","false");
+  $("reevaluation-confirm-cancel").focus();
+}
+function closeReevaluationConfirmation(){
+  $("reevaluation-confirm-modal").classList.remove("open");$("reevaluation-confirm-modal").setAttribute("aria-hidden","true");
+}
+async function confirmReevaluation(){
+  const item=history.find(entry=>String(entry.id)===String(activeHistoryId));if(!item){closeReevaluationConfirmation();return}
+  const button=$("reevaluation-confirm-submit"),label=button.textContent;button.disabled=true;button.textContent="Preparando reavaliação…";
   try{
     await remoteDb.reopenCompletedEvaluation(item.remoteId||item.id);
     location.href=`index.html?analisar=${encodeURIComponent(item.code)}`;
@@ -1103,9 +1111,10 @@ $("quiz-back").onclick=backQuestion;$("restart").onclick=reset;$("result-back").
 if($("history-search"))$("history-search").oninput=renderHistory;
 if($("export-csv"))$("export-csv").onclick=exportCsv;
 $("pending-search").oninput=renderPending;$("pending-filter").onchange=renderPending;
-$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-reevaluate").onclick=reevaluateHistoryEvaluation;
+$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-reevaluate").onclick=reevaluateHistoryEvaluation;$("reevaluation-confirm-submit").onclick=confirmReevaluation;$("reevaluation-confirm-close").onclick=closeReevaluationConfirmation;$("reevaluation-confirm-cancel").onclick=closeReevaluationConfirmation;$("reevaluation-confirm-modal").onclick=event=>{if(event.target===$("reevaluation-confirm-modal"))closeReevaluationConfirmation()};
 $("history-modal-edit").onclick=editHistoryEvaluation;
 $("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
+document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("reevaluation-confirm-modal").classList.contains("open"))closeReevaluationConfirmation()});
 $("scenario-fix-options").querySelectorAll("button").forEach(button=>button.onclick=()=>{
   button.classList.toggle("selected");
   $("scenario-fix-save").disabled=!$("scenario-fix-options").querySelector(".selected");

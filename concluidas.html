@@ -51,6 +51,13 @@
       <div class="history-modal-actions"><button class="btn secondary" id="history-modal-ok">Fechar consulta</button><button class="btn secondary" id="history-modal-assign-area" hidden>Atribuir área</button><button class="btn secondary" id="history-modal-reevaluate">Reavaliar curso</button><a class="btn primary" id="history-modal-edit" href="index.html">Editar avaliação</a></div>
     </div>
   </div>
+  <div class="scenario-fix-modal" id="reevaluation-confirm-modal" aria-hidden="true">
+    <div class="scenario-fix-card" role="dialog" aria-modal="true" aria-labelledby="reevaluation-confirm-title">
+      <div class="scenario-fix-head"><div><span>REAVALIAR CURSO</span><h2 id="reevaluation-confirm-title">Confirmar nova avaliação</h2></div><button type="button" id="reevaluation-confirm-close" aria-label="Fechar">×</button></div>
+      <p id="reevaluation-confirm-message"></p>
+      <div class="scenario-fix-actions"><button class="btn secondary" type="button" id="reevaluation-confirm-cancel">Cancelar</button><button class="btn primary" type="button" id="reevaluation-confirm-submit">Confirmar reavaliação</button></div>
+    </div>
+  </div>
   <div class="scenario-fix-modal" id="assign-area-modal" aria-hidden="true">
     <div class="scenario-fix-card" role="dialog" aria-modal="true" aria-labelledby="assign-area-title">
       <div class="scenario-fix-head"><div><span>COMPLEMENTAR ANÁLISE</span><h2 id="assign-area-title">Atribuir área mapeada</h2></div><button type="button" id="assign-area-close" aria-label="Fechar">×</button></div>
@@ -70,6 +77,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="assets/js/supabase-service.js?v=20260805-multiple-areas"></script>
-  <script src="assets/js/concluidas.js?v=20260805-area-question-only"></script>
+  <script src="assets/js/concluidas.js?v=20260805-reevaluation-modal"></script>
 </body>
 </html>

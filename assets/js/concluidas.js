@@ -112,10 +112,18 @@ function openHistory(id){
   document.querySelectorAll("[data-history-area-edit]").forEach(button=>button.onclick=openAssignArea);
 }
 function closeHistory(){activeHistoryId=null;$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
-async function reevaluateCourse(){
+function reevaluateCourse(){
   const item=completed.find(entry=>String(entry.id)===String(activeHistoryId));if(!item)return;
-  if(!confirm(`Reavaliar ${item.name}? As respostas e a decisão atuais serão apagadas para que o curso seja analisado novamente.`))return;
-  const button=$("history-modal-reevaluate"),label=button.textContent;button.disabled=true;button.textContent="Preparando reavaliação…";
+  $("reevaluation-confirm-message").textContent=`O curso ${item.name} voltará para a fila de análises. As respostas, a justificativa e a decisão atuais serão removidas para que uma nova avaliação seja realizada.`;
+  $("reevaluation-confirm-modal").classList.add("open");$("reevaluation-confirm-modal").setAttribute("aria-hidden","false");
+  $("reevaluation-confirm-cancel").focus();
+}
+function closeReevaluationConfirmation(){
+  $("reevaluation-confirm-modal").classList.remove("open");$("reevaluation-confirm-modal").setAttribute("aria-hidden","true");
+}
+async function confirmReevaluation(){
+  const item=completed.find(entry=>String(entry.id)===String(activeHistoryId));if(!item){closeReevaluationConfirmation();return}
+  const button=$("reevaluation-confirm-submit"),label=button.textContent;button.disabled=true;button.textContent="Preparando reavaliação…";
   try{
     await remoteDb.reopenCompletedEvaluation(item.id);
     location.href=`index.html?analisar=${encodeURIComponent(item.code)}`;
@@ -231,6 +239,6 @@ async function initialize(){
     render();
   }catch(error){handleSupabaseError(error);showSystemUnavailable()}
 }
-$("history-search").oninput=render;$("export-csv").onclick=exportExcel;$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-assign-area").onclick=openAssignArea;$("history-modal-reevaluate").onclick=reevaluateCourse;$("assign-area-options").querySelectorAll("[data-mapped-area]").forEach(button=>button.onclick=()=>{button.classList.toggle("selected");$("assign-area-save").disabled=!$("assign-area-options").querySelector("[data-mapped-area].selected")});$("assign-area-save").onclick=saveAssignedArea;$("assign-area-close").onclick=closeAssignArea;$("assign-area-cancel").onclick=closeAssignArea;$("assign-area-modal").onclick=event=>{if(event.target===$("assign-area-modal"))closeAssignArea()};$("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
-document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("history-modal").classList.contains("open"))closeHistory()});
+$("history-search").oninput=render;$("export-csv").onclick=exportExcel;$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-assign-area").onclick=openAssignArea;$("history-modal-reevaluate").onclick=reevaluateCourse;$("reevaluation-confirm-submit").onclick=confirmReevaluation;$("reevaluation-confirm-close").onclick=closeReevaluationConfirmation;$("reevaluation-confirm-cancel").onclick=closeReevaluationConfirmation;$("reevaluation-confirm-modal").onclick=event=>{if(event.target===$("reevaluation-confirm-modal"))closeReevaluationConfirmation()};$("assign-area-options").querySelectorAll("[data-mapped-area]").forEach(button=>button.onclick=()=>{button.classList.toggle("selected");$("assign-area-save").disabled=!$("assign-area-options").querySelector("[data-mapped-area].selected")});$("assign-area-save").onclick=saveAssignedArea;$("assign-area-close").onclick=closeAssignArea;$("assign-area-cancel").onclick=closeAssignArea;$("assign-area-modal").onclick=event=>{if(event.target===$("assign-area-modal"))closeAssignArea()};$("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
+document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;if($("reevaluation-confirm-modal").classList.contains("open"))closeReevaluationConfirmation();else if($("history-modal").classList.contains("open"))closeHistory()});
 initialize();
