@@ -803,7 +803,7 @@ function openHistory(id){
   $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>`
     <div class="process-step">
       <span>${step.step||index+1}</span>
-      <div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.step===4&&step.answer===true&&!step.scenarios?.length?`<p class="process-scenarios missing"><b>Cenário não informado.</b>${canEdit?' <button type="button" id="history-scenario-edit">Informar cenário</button>':""}</p>`:""}${step.observation?`<p class="process-observation"><b>${normalize(step.text).includes("tecnologia que necessita")?"Tecnologias para inclusão ou retirada":"Registro complementar"}:</b> ${escapeHtml(step.observation)}</p>`:""}</div>
+      <div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}${(Number(step.step)===4||normalize(step.text).includes("cenarios mapeados"))&&canEdit?' <button type="button" id="history-scenario-edit">Alterar área</button>':""}</p>`:""}${(Number(step.step)===4||normalize(step.text).includes("cenarios mapeados"))&&step.answer===true&&!step.scenarios?.length?`<p class="process-scenarios missing"><b>Cenário não informado.</b>${canEdit?' <button type="button" id="history-scenario-edit">Incluir área</button>':""}</p>`:""}${step.observation?`<p class="process-observation"><b>${normalize(step.text).includes("tecnologia que necessita")?"Tecnologias para inclusão ou retirada":"Registro complementar"}:</b> ${escapeHtml(step.observation)}</p>`:""}</div>
     </div>`).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
   const legacyQuestionnaire=/(^|\n)\s*(SIM|NÃO)\s+—/i.test(item.justification||"");
   const recordedScenarios=processItems.flatMap(step=>step.scenarios||[]);
@@ -861,7 +861,10 @@ function editHistoryEvaluation(){
 }
 function editHistoryScenario(item){
   scenarioFixItem=item;
-  $("scenario-fix-options").querySelectorAll("button").forEach(button=>button.classList.toggle("selected",(item.scenarioSelections?.[4]||[]).includes(button.dataset.scenario)));
+  const scenarioStep=(item.decisionPath||[]).find(step=>Number(step.step)===4||normalize(step.text).includes("cenarios mapeados"));
+  const current=scenarioStep?.scenarios?.length?scenarioStep.scenarios:(item.scenarioSelections?.[4]||item.rawState?.mappedAreasByTitle||[]);
+  $("scenario-fix-title").textContent=current.length?"Alterar área mapeada":"Incluir área mapeada";
+  $("scenario-fix-options").querySelectorAll("button").forEach(button=>button.classList.toggle("selected",current.includes(button.dataset.scenario)));
   $("scenario-fix-save").disabled=!$("scenario-fix-options").querySelector(".selected");
   $("scenario-fix-modal").classList.add("open");
   $("scenario-fix-modal").setAttribute("aria-hidden","false");
@@ -877,7 +880,12 @@ async function saveHistoryScenario(){
   if(!selected.length){toast("Selecione ao menos um cenário.");return}
   const button=$("scenario-fix-save");button.disabled=true;button.textContent="Salvando...";
   const item=scenarioFixItem;
-  const path=(item.decisionPath||[]).map(step=>Number(step.step)===4?{...step,scenarios:selected}:step);
+  let foundScenarioStep=false;
+  const path=(item.decisionPath||[]).map(step=>{
+    if(Number(step.step)!==4&&!normalize(step.text).includes("cenarios mapeados"))return step;
+    foundScenarioStep=true;return {...step,answer:true,scenarios:selected};
+  });
+  if(!foundScenarioStep)path.push({step:4,text:"O curso responde a um dos cenários mapeados?",answer:true,scenarios:selected});
   const state={...(item.rawState||{}),decisionPath:path,scenarioSelections:{...(item.scenarioSelections||{}),4:selected},editedAt:new Date().toISOString()};
   const justification=buildDecisionNarrative(path,item.result,item.name,item.criterion,item.observations);
   try{

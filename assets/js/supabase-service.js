@@ -442,11 +442,19 @@ window.remoteDb = {
     if (error) throw error;
     return Array.isArray(data) ? data[0] : data;
   },
-  async assignEvaluationMappedArea(evaluationId, mappedArea) {
-    const { data, error } = await window.supabaseClient.rpc("assign_evaluation_mapped_area", {
+  async assignEvaluationMappedAreas(evaluationId, mappedAreas) {
+    let { data, error } = await window.supabaseClient.rpc("assign_evaluation_mapped_areas", {
       p_evaluation_id: evaluationId,
-      p_mapped_area: mappedArea,
+      p_mapped_areas: mappedAreas,
     });
+    if (error?.code === "PGRST202" && mappedAreas?.length === 1) {
+      const legacy = await window.supabaseClient.rpc("assign_evaluation_mapped_area", {
+        p_evaluation_id: evaluationId,
+        p_mapped_area: mappedAreas[0],
+      });
+      data = legacy.data;
+      error = legacy.error;
+    }
     if (error) throw error;
     return Array.isArray(data) ? data[0] : data;
   },

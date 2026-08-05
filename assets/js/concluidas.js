@@ -64,7 +64,7 @@ function buildDecisionNarrative(path,result,courseName,criterion,extraObservatio
 
 function mapEvaluation(row){
   const state=row.state||{};
-  return {id:row.id,code:row.course_code,name:row.course_name,criterionKey:row.criterion_key,criterion:row.criterion_label,result:row.final_result||"",justification:row.justification||"",date:new Date(row.updated_at).toLocaleString("pt-BR"),source:state.source||"Avaliação realizada no sistema",sourceId:state.sourceId,decisionPath:state.decisionPath||state.answers||[],scenarioSelections:state.scenarioSelections||{},mappedAreasByTitle:state.mappedAreasByTitle||[],enrollments:state.enrollments||{},units:state.units||[],observations:state.observations||"",questionObservations:state.questionObservations||{},changeType:state.changeType||"",targetArea:state.targetArea||"",previousArea:state.previousArea||"",createdBy:row.created_by};
+  return {id:row.id,code:row.course_code,name:row.course_name,criterionKey:row.criterion_key,criterion:row.criterion_label,result:row.final_result||"",justification:row.justification||"",date:new Date(row.updated_at).toLocaleString("pt-BR"),source:state.source||"Avaliação realizada no sistema",sourceId:state.sourceId,decisionPath:state.decisionPath||state.answers||[],scenarioSelections:state.scenarioSelections||{},mappedAreasByTitle:state.mappedAreasByTitle||[],mappedAreaAssignedManually:Boolean(state.mappedAreaAssignedAt),enrollments:state.enrollments||{},units:state.units||[],observations:state.observations||"",questionObservations:state.questionObservations||{},changeType:state.changeType||"",targetArea:state.targetArea||"",previousArea:state.previousArea||"",createdBy:row.created_by};
 }
 function resultClass(result){const value=normalize(result);return value.includes("reestruturar")?"reestruturar":value.includes("fechar")?"fechar":"manter"}
 function render(){
@@ -87,10 +87,15 @@ function openHistory(id){
   const enrollments=Object.keys(item.enrollments).length?item.enrollments:(course?.enrollments||{}),units=item.units.length?item.units:(course?.unitCodes||[]);
   const areaDisplay=mappedAreas(item);
   $("history-overview").innerHTML=`<div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div><div><span>Origem</span><strong>${escapeHtml(item.source)}</strong></div><div><span>Área mapeada / Desfecho</span><strong>${escapeHtml(areaDisplay)}</strong></div><div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div><div><span>Unidades ofertantes</span><strong>${units.length?units.map(formatUnit).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
-  let processItems=(item.decisionPath||[]).map(step=>({...step,scenarios:step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[])}));
+  let processItems=(item.decisionPath||[]).map(step=>{
+    const isAreaStep=Number(step.step)===4||normalize(step.text).includes("cenarios mapeados");
+    const scenarios=item.mappedAreaAssignedManually&&isAreaStep?item.mappedAreasByTitle:(step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[]));
+    return {...step,scenarios};
+  });
   if(!processItems.length&&item.justification)processItems=parseImportedDecisionPath(item.justification);
   const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
-  $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>`<div class="process-step"><span>${step.step||index+1}</span><div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}</p>`:""}${step.step===4&&step.answer===true&&!step.scenarios?.length?`<p class="process-scenarios missing"><b>Cenário não informado.</b></p>`:""}${step.observation?`<p class="process-observation"><b>${normalize(step.text).includes("tecnologia que necessita")?"Tecnologias para inclusão ou retirada":"Registro complementar"}:</b> ${escapeHtml(step.observation)}</p>`:""}</div></div>`).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
+  const canAssignArea=!normalize(item.result).includes("fechar")&&!normalize(item.result).includes("troca de area")&&item.changeType!=="troca_area";
+  $("history-process-list").innerHTML=processItems.length?processItems.map((step,index)=>{const isAreaStep=Number(step.step)===4||normalize(step.text).includes("cenarios mapeados");return `<div class="process-step"><span>${step.step||index+1}</span><div><strong>${escapeHtml(decisionStatement(step))}</strong>${step.scenarios?.length?`<p class="process-scenarios"><b>Cenário${step.scenarios.length>1?"s":""} mapeado${step.scenarios.length>1?"s":""}:</b> ${step.scenarios.map(escapeHtml).join(", ")}${isAreaStep&&canAssignArea?' <button type="button" data-history-area-edit>Alterar área</button>':""}</p>`:""}${isAreaStep&&!step.scenarios?.length&&canAssignArea?`<p class="process-scenarios missing"><b>Área não informada.</b> <button type="button" data-history-area-edit>Incluir área</button></p>`:""}${step.observation?`<p class="process-observation"><b>${normalize(step.text).includes("tecnologia que necessita")?"Tecnologias para inclusão ou retirada":"Registro complementar"}:</b> ${escapeHtml(step.observation)}</p>`:""}</div></div>`}).join(""):`<div class="process-empty">O registro de origem não contém o detalhamento das perguntas percorridas.</div>`;
   const legacyQuestionnaire=/(^|\n)\s*(SIM|NÃO)\s+—/i.test(item.justification||"");
   const recordedScenarios=processItems.flatMap(step=>step.scenarios||[]);
   const justificationMissingScenario=recordedScenarios.some(scenario=>!normalize(item.justification).includes(normalize(scenario)));
@@ -99,6 +104,7 @@ function openHistory(id){
   $("history-modal-edit").hidden=!canEdit;$("history-modal-edit").href=`index.html?historico=${encodeURIComponent(item.id)}`;
   $("history-modal-assign-area").hidden=!/^não informada$|^nenhuma área mapeada$/i.test(areaDisplay);
   $("history-modal").classList.add("open");$("history-modal").setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
+  document.querySelectorAll("[data-history-area-edit]").forEach(button=>button.onclick=openAssignArea);
 }
 function closeHistory(){activeHistoryId=null;$("history-modal").classList.remove("open");$("history-modal").setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
 async function reevaluateCourse(){
@@ -113,20 +119,29 @@ async function reevaluateCourse(){
 }
 function openAssignArea(){
   if(!activeHistoryId)return;
-  $("assign-area-select").value="";$("assign-area-save").disabled=true;
+  const item=completed.find(entry=>String(entry.id)===String(activeHistoryId));
+  const current=item?.mappedAreasByTitle||[];
+  $("assign-area-title").textContent=current.length?"Alterar áreas mapeadas":"Incluir áreas mapeadas";
+  $("assign-area-options").querySelectorAll("[data-mapped-area]").forEach(button=>button.classList.toggle("selected",current.includes(button.dataset.mappedArea)));
+  $("assign-area-save").disabled=!current.length;
   $("assign-area-modal").classList.add("open");$("assign-area-modal").setAttribute("aria-hidden","false");
 }
 function closeAssignArea(){
   $("assign-area-modal").classList.remove("open");$("assign-area-modal").setAttribute("aria-hidden","true");
 }
 async function saveAssignedArea(){
-  const item=completed.find(entry=>String(entry.id)===String(activeHistoryId)),area=$("assign-area-select").value;if(!item||!area)return;
+  const item=completed.find(entry=>String(entry.id)===String(activeHistoryId));
+  const areas=[...$("assign-area-options").querySelectorAll("[data-mapped-area].selected")].map(button=>button.dataset.mappedArea);if(!item||!areas.length)return;
   const button=$("assign-area-save"),label=button.textContent;button.disabled=true;button.textContent="Salvando…";
   try{
-    await remoteDb.assignEvaluationMappedArea(item.id,area);
-    item.mappedAreasByTitle=[area];closeAssignArea();openHistory(item.id);toast("Área atribuída à avaliação.");
-  }catch(error){if(!handleSupabaseError(error))toast("Não foi possível atribuir a área.")}
-  finally{button.textContent=label;button.disabled=!$("assign-area-select").value}
+    await remoteDb.assignEvaluationMappedAreas(item.id,areas);
+    item.mappedAreasByTitle=areas;item.mappedAreaAssignedManually=true;closeAssignArea();openHistory(item.id);toast("Áreas atribuídas à avaliação.");
+  }catch(error){
+    console.error("Falha ao salvar áreas mapeadas",error);
+    if(error?.code==="PGRST202"||/assign_evaluation_mapped_areas|schema cache/i.test(error?.message||""))toast("A função de áreas ainda não foi atualizada no Supabase. Execute o SQL de atribuição de áreas e tente novamente.");
+    else if(!handleSupabaseError(error))toast("Não foi possível salvar as áreas selecionadas.");
+  }
+  finally{button.textContent=label;button.disabled=!$("assign-area-options").querySelector("[data-mapped-area].selected")}
 }
 function parseBrazilianDate(value){
   const match=String(value||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!match)return value||"";
@@ -150,6 +165,7 @@ function mappedAreas(item){
   const normalizedResult=normalize(item.result);
   if(normalizedResult.includes("fechar"))return "FECHAR VIGÊNCIA";
   if(normalizedResult.includes("troca de area")||normalizedResult.includes("trocar area")||item.changeType==="troca_area")return "TROCA DE ÁREA";
+  if(item.mappedAreaAssignedManually&&item.mappedAreasByTitle.length)return item.mappedAreasByTitle.join("; ");
   const titleAreas=mappedAreasByTitle(item.name);
   if(normalizedResult.includes("manter")&&titleAreas.length)return titleAreas.join("; ");
   const values=[...(Array.isArray(item.mappedAreasByTitle)?item.mappedAreasByTitle:[])];
@@ -210,6 +226,6 @@ async function initialize(){
     render();
   }catch(error){handleSupabaseError(error);showSystemUnavailable()}
 }
-$("history-search").oninput=render;$("export-csv").onclick=exportExcel;$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-assign-area").onclick=openAssignArea;$("history-modal-reevaluate").onclick=reevaluateCourse;$("assign-area-select").onchange=()=>$("assign-area-save").disabled=!$("assign-area-select").value;$("assign-area-save").onclick=saveAssignedArea;$("assign-area-close").onclick=closeAssignArea;$("assign-area-cancel").onclick=closeAssignArea;$("assign-area-modal").onclick=event=>{if(event.target===$("assign-area-modal"))closeAssignArea()};$("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
+$("history-search").oninput=render;$("export-csv").onclick=exportExcel;$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-assign-area").onclick=openAssignArea;$("history-modal-reevaluate").onclick=reevaluateCourse;$("assign-area-options").querySelectorAll("[data-mapped-area]").forEach(button=>button.onclick=()=>{button.classList.toggle("selected");$("assign-area-save").disabled=!$("assign-area-options").querySelector("[data-mapped-area].selected")});$("assign-area-save").onclick=saveAssignedArea;$("assign-area-close").onclick=closeAssignArea;$("assign-area-cancel").onclick=closeAssignArea;$("assign-area-modal").onclick=event=>{if(event.target===$("assign-area-modal"))closeAssignArea()};$("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
 document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("history-modal").classList.contains("open"))closeHistory()});
 initialize();

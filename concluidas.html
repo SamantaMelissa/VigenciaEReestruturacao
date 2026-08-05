@@ -55,15 +55,21 @@
     <div class="scenario-fix-card" role="dialog" aria-modal="true" aria-labelledby="assign-area-title">
       <div class="scenario-fix-head"><div><span>COMPLEMENTAR ANÁLISE</span><h2 id="assign-area-title">Atribuir área mapeada</h2></div><button type="button" id="assign-area-close" aria-label="Fechar">×</button></div>
       <p>Selecione a área estratégica correspondente ao título do curso. Essa informação será salva na avaliação concluída.</p>
-      <div class="area-change-form"><label>Área mapeada<select id="assign-area-select"><option value="">Selecione a área</option><option>Desenvolvimento de software</option><option>Redes e Infraestrutura</option><option>Segurança Cibernética</option><option>Cloud e DevOps</option><option>Dados</option></select></label></div>
-      <div class="scenario-fix-actions"><button class="btn secondary" type="button" id="assign-area-cancel">Cancelar</button><button class="btn primary" type="button" id="assign-area-save" disabled>Salvar área</button></div>
+      <div class="scenario-fix-options" id="assign-area-options">
+        <button type="button" data-mapped-area="Desenvolvimento de software">Desenvolvimento de software</button>
+        <button type="button" data-mapped-area="Redes e Infraestrutura">Redes e Infraestrutura</button>
+        <button type="button" data-mapped-area="Segurança Cibernética">Segurança Cibernética</button>
+        <button type="button" data-mapped-area="Cloud e DevOps">Cloud e DevOps</button>
+        <button type="button" data-mapped-area="Dados">Dados</button>
+      </div>
+      <div class="scenario-fix-actions"><button class="btn secondary" type="button" id="assign-area-cancel">Cancelar</button><button class="btn primary" type="button" id="assign-area-save" disabled>Salvar áreas</button></div>
     </div>
   </div>
   <script src="assets/data/courses-data.js"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-  <script src="assets/js/supabase-service.js?v=20260805-assign-area"></script>
-  <script src="assets/js/concluidas.js?v=20260805-unified-history-modal"></script>
+  <script src="assets/js/supabase-service.js?v=20260805-multiple-areas"></script>
+  <script src="assets/js/concluidas.js?v=20260805-multiple-areas"></script>
 </body>
 </html>
