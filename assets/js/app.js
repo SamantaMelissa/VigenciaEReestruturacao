@@ -1,10 +1,12 @@
 const COURSES = window.COURSES_DATA || [];
+const courseHasEnded=course=>{const match=String(course?.end||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!match)return false;const today=new Date(),endKey=Number(`${match[3]}${match[2]}${match[1]}`),todayKey=Number(`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}`);return endKey<=todayKey};
 const FIC_CRITERION_OVERRIDES = new Set(["109575", "87967"]);
 COURSES.forEach(course=>{
   if(FIC_CRITERION_OVERRIDES.has(String(course.code)))course.criterion="fic";
 });
-const ANALYZABLE_COURSES = COURSES.filter(course=>String(course.creator||"").trim().toUpperCase()==="GED");
+const ANALYZABLE_COURSES = COURSES.filter(course=>String(course.creator||"").trim().toUpperCase()==="GED"&&!courseHasEnded(course));
 let analysisScopeCodes=new Set(ANALYZABLE_COURSES.map(course=>String(course.code)));
+let expiredAnalysisScopeCodes=new Set();
 const CRITERIA = {
   regular: {
     label: "Regulares e Qualificação FIC",
@@ -65,6 +67,9 @@ const needsQuestionObservation=text=>{
   return value.includes("alguma tecnologia")||value.includes("justificativa tecnica");
 };
 const senaiOffersUrl=courseName=>`https://www.sp.senai.br/cursos/0/0?pesquisa=${encodeURIComponent(String(courseName||"").toLocaleLowerCase("pt-BR"))}`;
+const SCENARIO_NAMES={1:"Desenvolvimento de software",2:"Redes e Infraestrutura",3:"Segurança Cibernética",4:"Cloud e DevOps",5:"Dados"};
+const scenarioNamesFromText=text=>[...new Set((normalize(text).match(/cenarios?\s+mapeados?\s*\(([^)]+)\)/i)?.[1]?.match(/[1-5]/g)||[]).map(number=>SCENARIO_NAMES[number]))];
+const cleanDecisionText=text=>normalize(text).includes("cenarios mapeados")?String(text||"").replace(/\s*\(\s*[1-5](?:\s*[,;e/]\s*[1-5])*\s*\)/i,""):String(text||"");
 const formatDecisionResult=text=>{
   const value=String(text||"").trim().toLocaleLowerCase("pt-BR");
   return value?value.charAt(0).toLocaleUpperCase("pt-BR")+value.slice(1):"";
@@ -85,7 +90,7 @@ function parseImportedDecisionPath(justification){
 }
 function decisionStatement(item){
   if(typeof item.answer!=="boolean"){
-    const source=String(item.text||"").replace(/[;?]+$/g,"").trim().toLocaleLowerCase("pt-BR")
+    const source=cleanDecisionText(item.text).replace(/[;?]+$/g,"").trim().toLocaleLowerCase("pt-BR")
       .replace(/\b(fic|cbo|ia|iot|cnct|uc|ucs)\b/gi,value=>value.toLocaleUpperCase("pt-BR"));
     return source?source.charAt(0).toLocaleUpperCase("pt-BR")+source.slice(1):"";
   }
@@ -198,6 +203,7 @@ async function loadRemoteAppData(){
     .filter(row=>row.created_by===appSession.user.id)
     .filter(row=>!completedCodes.has(String(row.course_code)))
     .map(mapRemoteEvaluation)
+    .filter(item=>!courseHasEnded(COURSES.find(course=>String(course.code)===String(item.code))))
     .filter(item=>item.rawState?.validationReady!==true);
   contactQueue=validations;
   const validationCodes=new Set(contactQueue.filter(item=>["pendente","em_contato"].includes(item.status)).map(item=>String(item.course_code)));
@@ -206,7 +212,8 @@ async function loadRemoteAppData(){
     const course=COURSES.find(entry=>String(entry.code)===String(item.course_code));
     if(course&&["fic","regular"].includes(item.criterion_key))course.criterion=item.criterion_key;
   });
-  analysisScopeCodes=new Set(analysisScope.filter(item=>item.is_analyzable).map(item=>String(item.course_code)));
+  expiredAnalysisScopeCodes=new Set(analysisScope.filter(item=>item.is_analyzable&&courseHasEnded(COURSES.find(course=>String(course.code)===String(item.course_code)))).map(item=>String(item.course_code)));
+  analysisScopeCodes=new Set(analysisScope.filter(item=>item.is_analyzable&&!expiredAnalysisScopeCodes.has(String(item.course_code))).map(item=>String(item.course_code)));
   $("base-total").textContent=analysisScopeCodes.size;
   $("search-base-total").textContent=analysisScopeCodes.size.toLocaleString("pt-BR");
   buildPendingCourses(analysisScope,completed,claims);
@@ -245,7 +252,9 @@ function buildPendingCourses(scope,completed,claims){
   const ownDraftCodes=new Set(claims.filter(item=>item.created_by===appSession.user.id).map(item=>String(item.course_code)));
   const readyCodes=new Set(claims.filter(item=>item.available_for_claim===true).map(item=>String(item.course_code)));
   const validationCodes=new Set(contactQueue.filter(item=>["pendente","em_contato"].includes(item.status)).map(item=>String(item.course_code)));
-  const eligible=scope.filter(item=>item.is_analyzable);
+  const allEligible=scope.filter(item=>item.is_analyzable);
+  expiredAnalysisScopeCodes=new Set(allEligible.filter(item=>courseHasEnded(COURSES.find(course=>String(course.code)===String(item.course_code)))).map(item=>String(item.course_code)));
+  const eligible=allEligible.filter(item=>!expiredAnalysisScopeCodes.has(String(item.course_code)));
   pendingCourses=eligible
     .filter(item=>!completedCodes.has(String(item.course_code)))
     .map(item=>{
@@ -263,7 +272,7 @@ function buildPendingCourses(scope,completed,claims){
   $("pending-total").textContent=pendingCourses.length.toLocaleString("pt-BR");
   $("pending-new").textContent=pendingCourses.filter(item=>item.status==="nao_iniciada").length.toLocaleString("pt-BR");
   $("pending-progress").textContent=pendingCourses.filter(item=>["em_andamento","rascunho_salvo","retorno_disponivel","em_validacao"].includes(item.status)).length.toLocaleString("pt-BR");
-  $("pending-completed").textContent=eligible.filter(item=>completedCodes.has(String(item.course_code))).length.toLocaleString("pt-BR");
+  $("pending-completed").textContent=allEligible.filter(item=>completedCodes.has(String(item.course_code))||expiredAnalysisScopeCodes.has(String(item.course_code))).length.toLocaleString("pt-BR");
   $("pending-updated").textContent=new Date().toLocaleString("pt-BR");
 }
 function renderPending(){
@@ -288,7 +297,7 @@ function refreshPendingSummary(){
   $("pending-total").textContent=pendingCourses.length.toLocaleString("pt-BR");
   $("pending-new").textContent=pendingCourses.filter(item=>item.status==="nao_iniciada").length.toLocaleString("pt-BR");
   $("pending-progress").textContent=pendingCourses.filter(item=>["em_andamento","rascunho_salvo","retorno_disponivel","em_validacao"].includes(item.status)).length.toLocaleString("pt-BR");
-  $("pending-completed").textContent=Math.max(0,analysisScopeCodes.size-pendingCourses.length).toLocaleString("pt-BR");
+  $("pending-completed").textContent=(Math.max(0,analysisScopeCodes.size-pendingCourses.length)+expiredAnalysisScopeCodes.size).toLocaleString("pt-BR");
 }
 function setPendingInProgress(courseCode){
   pendingCourses=pendingCourses.map(item=>String(item.course_code)===String(courseCode)?{...item,status:"em_andamento",canResume:true}:item);
@@ -805,7 +814,7 @@ function renderHistory(){
     const course=COURSES.find(entry=>String(entry.code)===String(h.code))||{};
     return `<article class="history-row" data-history-id="${h.id}">
       <span class="status ${resultClass}">${escapeHtml(formatDecisionResult(h.result))}</span>
-      <span class="history-icon">◇</span>
+      <span class="history-icon ${resultClass}">◇</span>
       <div class="history-main"><strong>${escapeHtml(h.name)}</strong><small>Código ${h.code} · ${escapeHtml(h.criterion)}</small></div>
       <div class="history-course-facts"><strong>${escapeHtml(course.type||"Tipo não informado")}</strong><span>${escapeHtml(course.strategy||"Modalidade não informada")} · ${course.hours?`${escapeHtml(course.hours)} h`:"Carga horária não informada"}</span></div>
       <div class="history-date"><span>Registrado em</span><strong>${escapeHtml(h.date)}</strong></div>
@@ -845,7 +854,7 @@ function openHistory(id){
     ${item.changeType==="troca_area"?`<div><span>Área anterior</span><strong>${escapeHtml(item.previousArea||course?.area||"Não informada")}</strong></div><div><span>Nova área de atuação</span><strong>${escapeHtml(item.targetArea||"Não informada")}</strong></div>`:""}`;
   let processItems=(item.decisionPath||[]).map(step=>{
     const isAreaStep=normalize(step.text).includes("cenarios mapeados");
-    const recordedScenarios=step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[]);
+    const recordedScenarios=step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||scenarioNamesFromText(step.text));
     const savedAreas=Array.isArray(item.rawState?.mappedAreasByTitle)?item.rawState.mappedAreasByTitle:[];
     return {...step,scenarios:isAreaStep&&!recordedScenarios.length&&savedAreas.length?savedAreas:recordedScenarios};
   });

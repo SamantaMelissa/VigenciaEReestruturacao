@@ -2,7 +2,11 @@ const $=id=>document.getElementById(id);
 const normalize=text=>String(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const escapeHtml=text=>String(text??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
 const cleanScenarioName=text=>String(text||"").replace(/^\s*\(\s*\d+\s*\)\s*/,"").trim();
+const SCENARIO_NAMES={1:"Desenvolvimento de software",2:"Redes e Infraestrutura",3:"Segurança Cibernética",4:"Cloud e DevOps",5:"Dados"};
+const scenarioNamesFromText=text=>[...new Set((normalize(text).match(/cenarios?\s+mapeados?\s*\(([^)]+)\)/i)?.[1]?.match(/[1-5]/g)||[]).map(number=>SCENARIO_NAMES[number]))];
+const cleanDecisionText=text=>normalize(text).includes("cenarios mapeados")?String(text||"").replace(/\s*\(\s*[1-5](?:\s*[,;e/]\s*[1-5])*\s*\)/i,""):String(text||"");
 const senaiOffersUrl=courseName=>`https://www.sp.senai.br/cursos/0/0?pesquisa=${encodeURIComponent(String(courseName||"").toLocaleLowerCase("pt-BR"))}`;
+const courseHasEnded=course=>{const match=String(course?.end||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!match)return false;const today=new Date(),endKey=Number(`${match[3]}${match[2]}${match[1]}`),todayKey=Number(`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}`);return endKey<=todayKey};
 const formatResult=text=>{const value=String(text||"").trim().toLocaleLowerCase("pt-BR");return value?value.charAt(0).toLocaleUpperCase("pt-BR")+value.slice(1):"Não informado"};
 const formatUnit=code=>{const digits=String(code??"").replace(/\D/g,"");return digits.length===3?`${digits[0]}.${digits.slice(1)}`:String(code??"")};
 let completed=[];
@@ -20,7 +24,7 @@ function parseImportedDecisionPath(justification){
 }
 function decisionStatement(item){
   if(typeof item.answer!=="boolean"){
-    const source=String(item.text||"").replace(/[;?]+$/g,"").trim().toLocaleLowerCase("pt-BR")
+    const source=cleanDecisionText(item.text).replace(/[;?]+$/g,"").trim().toLocaleLowerCase("pt-BR")
       .replace(/\b(fic|cbo|ia|iot|cnct|uc|ucs)\b/gi,value=>value.toLocaleUpperCase("pt-BR"));
     return source?source.charAt(0).toLocaleUpperCase("pt-BR")+source.slice(1):"";
   }
@@ -74,7 +78,7 @@ function render(){
   const items=completed.filter(item=>normalize(`${item.name} ${item.code} ${item.result}`).includes(query));
   $("completed-total").textContent=completed.length.toLocaleString("pt-BR");
   $("history-list").innerHTML=items.length?items.map(item=>{const course=(window.COURSES_DATA||[]).find(entry=>String(entry.code)===String(item.code))||{};return `<article class="history-row" data-history-id="${item.id}">
-    <span class="status ${resultClass(item.result)}">${escapeHtml(formatResult(item.result))}</span><span class="history-icon">◇</span><div class="history-main"><strong>${escapeHtml(item.name)}</strong><small>Código ${escapeHtml(item.code)} · ${escapeHtml(item.criterion)}</small></div><div class="history-course-facts"><strong>${escapeHtml(course.type||"Tipo não informado")}</strong><span>${escapeHtml(course.strategy||"Modalidade não informada")} · ${course.hours?`${escapeHtml(course.hours)} h`:"Carga horária não informada"}</span></div>
+    <span class="status ${resultClass(item.result)}">${escapeHtml(formatResult(item.result))}</span><span class="history-icon ${resultClass(item.result)}">◇</span><div class="history-main"><strong>${escapeHtml(item.name)}</strong><small>Código ${escapeHtml(item.code)} · ${escapeHtml(item.criterion)}</small></div><div class="history-course-facts"><strong>${escapeHtml(course.type||"Tipo não informado")}</strong><span>${escapeHtml(course.strategy||"Modalidade não informada")} · ${course.hours?`${escapeHtml(course.hours)} h`:"Carga horária não informada"}</span></div>
     <div class="history-date"><span>Registrado em</span><strong>${escapeHtml(item.date)}</strong></div><span class="history-open">Ver processo →</span>
   </article>`}).join(""):`<div class="history-empty">Nenhuma análise concluída encontrada.</div>`;
   document.querySelectorAll("[data-history-id]").forEach(card=>card.onclick=()=>openHistory(card.dataset.historyId));
@@ -94,7 +98,7 @@ function openHistory(id){
   $("history-overview").innerHTML=`<div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div><div><span>Área mapeada / Desfecho</span><strong>${escapeHtml(areaDisplay)}</strong></div><div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div><div><span>Unidades ofertantes</span><strong>${units.length?units.map(formatUnit).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
   let processItems=(item.decisionPath||[]).map(step=>{
     const isAreaStep=normalize(step.text).includes("cenarios mapeados");
-    const recordedScenarios=(step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[])).map(cleanScenarioName).filter(Boolean);
+    const recordedScenarios=(step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||scenarioNamesFromText(step.text))).map(cleanScenarioName).filter(Boolean);
     const scenarios=isAreaStep&&!recordedScenarios.length?overviewAreas:recordedScenarios;
     return {...step,scenarios};
   });
@@ -212,8 +216,8 @@ async function exportExcel(){
     header.eachCell(cell=>{cell.font={name:"Aptos Narrow",size:14,bold:true,color:{argb:"FF000000"}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFFFFF"}};cell.alignment={horizontal:"center",vertical:"middle",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FF808080"}},left:{style:"thin",color:{argb:"FF808080"}},bottom:{style:"thin",color:{argb:"FF808080"}},right:{style:"thin",color:{argb:"FF808080"}}}});
     completed.forEach((item,index)=>{
       const course=(window.COURSES_DATA||[]).find(entry=>String(entry.code)===String(item.code))||{};
-      const newArea=item.changeType==="troca_area"?item.targetArea:"";
-      const row=sheet.addRow([index+1,item.criterionKey==="fic"?"FIC":"Regular",String(item.code||""),item.name||course.name||"",course.hours??"",course.level||"",course.type||"",course.strategy||"",item.justification||"",String(item.result||"").toLocaleUpperCase("pt-BR"),mappedAreas(item),course.area||item.previousArea||"",course.segment||"",parseBrazilianDate(course.start),newArea,exportObservation(item)]);
+      const expired=courseHasEnded(course),newArea=!expired&&item.changeType==="troca_area"?item.targetArea:"",exportItem=expired?{...item,result:"FECHAR A VIGÊNCIA",justification:`Fechar a vigência porque a data de término registrada para o curso é ${course.end}.`,changeType:"fechar_vigencia_data_termino"}:item;
+      const row=sheet.addRow([index+1,exportItem.criterionKey==="fic"?"FIC":"Regular",String(exportItem.code||""),exportItem.name||course.name||"",course.hours??"",course.level||"",course.type||"",course.strategy||"",exportItem.justification||"",String(exportItem.result||"").toLocaleUpperCase("pt-BR"),mappedAreas(exportItem),course.area||exportItem.previousArea||"",course.segment||"",parseBrazilianDate(course.start),newArea,exportObservation(exportItem)]);
       row.height=90;row.eachCell({includeEmpty:true},cell=>{cell.font={name:"Aptos Narrow",size:11};cell.alignment={vertical:"top",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFD9D9D9"}},left:{style:"thin",color:{argb:"FFD9D9D9"}},bottom:{style:"thin",color:{argb:"FFD9D9D9"}},right:{style:"thin",color:{argb:"FFD9D9D9"}}}});
       [1,3,5,6,8,14].forEach(column=>row.getCell(column).alignment={horizontal:"center",vertical:"top",wrapText:true});
       if(row.getCell(14).value instanceof Date)row.getCell(14).numFmt="dd/mm/yyyy";

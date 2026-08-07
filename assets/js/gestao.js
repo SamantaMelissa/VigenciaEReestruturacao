@@ -6,8 +6,12 @@ const formatDecisionResult=text=>{
   const value=String(text||"").trim().toLocaleLowerCase("pt-BR");
   return value?value.charAt(0).toLocaleUpperCase("pt-BR")+value.slice(1):"";
 };
+const SCENARIO_NAMES={1:"Desenvolvimento de software",2:"Redes e Infraestrutura",3:"Segurança Cibernética",4:"Cloud e DevOps",5:"Dados"};
+const scenarioNamesFromText=text=>[...new Set((normalize(text).match(/cenarios?\s+mapeados?\s*\(([^)]+)\)/i)?.[1]?.match(/[1-5]/g)||[]).map(number=>SCENARIO_NAMES[number]))];
 let completedEvaluations=[];
 let analysisScope=[];
+const courseHasEnded=course=>{const match=String(course?.end||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!match)return false;const today=new Date(),endKey=Number(`${match[3]}${match[2]}${match[1]}`),todayKey=Number(`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}`);return endKey<=todayKey};
+const endedCourseEvaluation=(course,evaluation,scopeItem)=>({...(evaluation||{}),course_code:String(course.code||scopeItem.course_code),course_name:evaluation?.course_name||scopeItem.course_name||course.name||"",criterion_key:evaluation?.criterion_key||scopeItem.criterion_key||course.criterion||"regular",criterion_label:evaluation?.criterion_label||(scopeItem.criterion_key==="fic"?"Critério FIC":"Critério Regular / Qualificação"),final_result:"FECHAR A VIGÊNCIA",justification:`Fechar a vigência porque a data de término registrada para o curso é ${course.end}.`,state:{...(evaluation?.state||{}),changeType:"fechar_vigencia_data_termino",closureReason:"data_termino",closureReasonLabel:`Data de término: ${course.end}`}});
 
 function resultGroup(result){
   const value=normalize(result);
@@ -111,7 +115,7 @@ function legacyStatement(raw){
   if(text.includes("mais de uma escola"))return withDetail("O título é ofertado por mais de uma escola");
   if(text.includes("somente uma escola"))return withDetail("O título possui oferta registrada em somente uma escola");
   if(text.includes("curso nao responde"))return "O curso não foi relacionado aos cenários estratégicos mapeados";
-  if(text.includes("curso responde"))return withDetail("O curso está relacionado aos cenários estratégicos mapeados");
+  if(text.includes("curso responde")){const scenarios=scenarioNamesFromText(raw);return `O curso está relacionado aos cenários estratégicos mapeados${scenarios.length?`: ${scenarios.join(", ")}`:""}`}
   if(text.includes("cbo")&&text.includes("nao tem empregabilidade"))return "Não foi identificada empregabilidade suficiente para as ocupações relacionadas";
   if(text.includes("cbo")&&text.includes("empregabilidade"))return withDetail("As ocupações relacionadas apresentam empregabilidade no mapa de emprego");
   if(text.includes("nao e uma qualificacao fic sem perfil"))return "A qualificação possui perfil profissional FIC";
@@ -156,7 +160,7 @@ async function exportManagerWorkbook(){
     const header=sheet.getRow(1);header.height=56.25;
     header.eachCell(cell=>{cell.font={name:"Aptos Narrow",size:14,bold:true,color:{argb:"FF000000"}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFFFFF"}};cell.alignment={horizontal:"center",vertical:"middle",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FF808080"}},left:{style:"thin",color:{argb:"FF808080"}},bottom:{style:"thin",color:{argb:"FF808080"}},right:{style:"thin",color:{argb:"FF808080"}}}});
     scope.forEach((scopeItem,index)=>{
-      const code=String(scopeItem.course_code),course=(window.COURSES_DATA||[]).find(item=>String(item.code)===code)||{},evaluation=latestCompleted.get(code),state=evaluation?.state||{};
+      const code=String(scopeItem.course_code),course=(window.COURSES_DATA||[]).find(item=>String(item.code)===code)||{},savedEvaluation=latestCompleted.get(code),evaluation=courseHasEnded(course)?endedCourseEvaluation(course,savedEvaluation,scopeItem):savedEvaluation,state=evaluation?.state||{};
       const criterionKey=evaluation?.criterion_key||scopeItem.criterion_key||course.criterion||"regular",pending=!evaluation;
       const row=sheet.addRow([index+1,criterionKey==="fic"?"FIC":"Regular",code,evaluation?.course_name||scopeItem.course_name||course.name||"",course.hours??"",course.level||"",course.type||"",course.strategy||"",pending?"PENDENTE DE ANÁLISE":exportJustification(evaluation),pending?"PENDENTE DE ANÁLISE":String(evaluation.final_result||"NÃO INFORMADO").toLocaleUpperCase("pt-BR"),mappedAreas(evaluation),course.area||state.previousArea||"",course.segment||"",parseBrazilianDate(course.start),state.changeType==="troca_area"?state.targetArea||"":"",pending?"":evaluationObservations(evaluation)]);
       row.height=90;row.eachCell({includeEmpty:true},cell=>{cell.font={name:"Aptos Narrow",size:11};cell.alignment={vertical:"top",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFD9D9D9"}},left:{style:"thin",color:{argb:"FFD9D9D9"}},bottom:{style:"thin",color:{argb:"FFD9D9D9"}},right:{style:"thin",color:{argb:"FFD9D9D9"}}}});
