@@ -2,6 +2,7 @@ const $=id=>document.getElementById(id);
 const normalize=text=>String(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const escapeHtml=text=>String(text??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
 const cleanScenarioName=text=>String(text||"").replace(/^\s*\(\s*\d+\s*\)\s*/,"").trim();
+const senaiOffersUrl=courseName=>`https://www.sp.senai.br/cursos/0/0?pesquisa=${encodeURIComponent(String(courseName||"").toLocaleLowerCase("pt-BR"))}`;
 const formatResult=text=>{const value=String(text||"").trim().toLocaleLowerCase("pt-BR");return value?value.charAt(0).toLocaleUpperCase("pt-BR")+value.slice(1):"Não informado"};
 const formatUnit=code=>{const digits=String(code??"").replace(/\D/g,"");return digits.length===3?`${digits[0]}.${digits.slice(1)}`:String(code??"")};
 let completed=[];
@@ -84,6 +85,7 @@ function openHistory(id){
   const course=(window.COURSES_DATA||[]).find(entry=>String(entry.code)===String(item.code));
   $("history-modal-title").textContent=item.name;$("history-modal-code").textContent=`Código ${item.code} · ${item.criterion}`;
   $("history-modal-facts").innerHTML=`<strong>${escapeHtml(course?.type||"Tipo não informado")}</strong><span>${escapeHtml(course?.strategy||"Modalidade não informada")} · ${course?.hours?`${escapeHtml(course.hours)} h`:"Carga horária não informada"}</span>`;
+  $("history-course-offers-link").href=senaiOffersUrl(item.name);
   $("history-result-strip").className=`history-result-strip ${resultClass(item.result)}`;
   $("history-result-strip").innerHTML=`<span>Decisão registrada</span><strong>${escapeHtml(formatResult(item.result))}</strong>`;
   const enrollments=Object.keys(item.enrollments).length?item.enrollments:(course?.enrollments||{}),units=item.units.length?item.units:(course?.unitCodes||[]);

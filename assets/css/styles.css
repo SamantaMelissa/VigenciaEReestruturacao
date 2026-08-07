@@ -822,6 +822,9 @@ textarea {
   color: #805400;
 }
 .area-change-trigger:hover { background: #d99400; color: #241900; }
+.direct-closure-trigger { border: 1px solid #b52a30; background: #fff; color: #a32026; }
+.direct-closure-trigger:hover { background: #a32026; color: #fff; }
+#validate-view .panel-actions { flex-wrap: wrap; }
 .area-change-form { display: grid; gap: 15px; }
 .area-change-form label {
   display: grid;
@@ -3877,15 +3880,19 @@ html.full-hd-scale .contact-modal-actions .btn {
 .history-date { grid-column: 1 / -1; grid-row: 3; }
 .history-row .delete { top: 6px; color: currentColor; z-index: 1; }
 .history-modal-head { align-items: center; gap: 18px; }
-.history-modal-head > div:first-child { min-width: 0; }
+.history-modal-head > div:first-child { flex: 1; min-width: 0; }
 .history-modal-facts { margin-left: auto; padding-left: 18px; border-left: 1px solid var(--line); text-align: right; }
 .history-modal-facts strong, .history-modal-facts span { display: block; white-space: nowrap; }
 .history-modal-facts strong { color: #292929; font-size: 10px; }
 .history-modal-facts span { margin-top: 4px; color: var(--muted); font-size: 9px; }
+.history-modal-links { display: flex; flex-direction: column; gap: 5px; padding-left: 18px; border-left: 1px solid var(--line); }
+.history-modal-links a { color: var(--blue); font-size: 8px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.history-modal-links a:hover { text-decoration: underline; }
 @media (max-width: 680px) {
   .history-row { grid-template-columns: 40px minmax(0, 1fr); }
   .history-course-facts { grid-column: 2; grid-row: 3; padding: 0; text-align: left; }
   .history-date { grid-row: 4; }
   .history-modal-head { align-items: flex-start; flex-wrap: wrap; }
   .history-modal-facts { order: 3; width: 100%; margin: 0; padding: 9px 0 0; border-left: 0; border-top: 1px solid var(--line); text-align: left; }
+  .history-modal-links { order: 4; width: 100%; flex-direction: row; flex-wrap: wrap; padding: 9px 0 0; border-left: 0; }
 }

@@ -53,6 +53,7 @@ let pendingCourses=[];
 let claimingCourse=false;
 let refreshingFromRealtime=false;
 let validationHandoffInProgress=false;
+let savingDirectClosure=false;
 let savingResult=false;
 let savingDraft=false;
 let savingAreaChange=false;
@@ -423,6 +424,54 @@ function closeAreaChange(){
   $("area-change-modal").classList.remove("open");
   $("area-change-modal").setAttribute("aria-hidden","true");
 }
+function openDirectClosure(){
+  if(!selectedCourse)return;
+  $("direct-closure-course").textContent=selectedCourse.name;
+  $("direct-closure-reason").value="inativo_sistema";
+  $("direct-closure-notes").value="";
+  $("direct-closure-save").disabled=false;
+  $("direct-closure-modal").classList.add("open");
+  $("direct-closure-modal").setAttribute("aria-hidden","false");
+}
+function closeDirectClosure(){
+  if(savingDirectClosure)return;
+  $("direct-closure-modal").classList.remove("open");
+  $("direct-closure-modal").setAttribute("aria-hidden","true");
+}
+async function saveDirectClosure(){
+  if(savingDirectClosure||!selectedCourse)return;
+  const reasonSelect=$("direct-closure-reason"),reason=reasonSelect.value,reasonLabel=reasonSelect.options[reasonSelect.selectedIndex]?.text||"";
+  const notes=$("direct-closure-notes").value.trim();
+  if(!reason){toast("Selecione o motivo do fechamento.");return}
+  if(reason==="outro"&&!notes){toast("Informe o motivo do fechamento.");return}
+  if(isPreviewMode){toast("Modo de demonstração: o fechamento não será gravado.");return}
+  savingDirectClosure=true;
+  const button=$("direct-closure-save"),originalLabel=button.textContent;
+  button.disabled=true;button.textContent="Salvando...";
+  try{
+    let reservation=evaluationDrafts.find(item=>String(item.code)===String(selectedCourse.code));
+    if(!reservation){
+      const claimPayload={course_code:selectedCourse.code,course_name:selectedCourse.name,criterion_key:selectedCourse.criterion,criterion_label:CRITERIA[selectedCourse.criterion].short,status:"em_analise",current_question:1,final_result:null,justification:null,created_by:appSession.user.id,state:{answers:[],enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[]}};
+      const {data,error}=await supabaseClient.from("evaluations").insert(claimPayload).select().single();
+      if(error)throw error;
+      reservation=mapRemoteEvaluation(data);evaluationDrafts.unshift(reservation);
+      remoteDb.notifyEvaluationStarted(selectedCourse.code).catch(console.error);
+    }
+    const reasonText=reason==="outro"?notes:reasonLabel;
+    const justification=`Fechar a vigência do curso ${selectedCourse.name}. Motivo: ${reasonText}.${reason!=="outro"&&notes?` Observação: ${notes}.`:""}`;
+    const state={...(reservation.rawState||{}),answers:[],decisionPath:[{step:1,text:"O curso deve ter a vigência fechada?",answer:true,observation:`Motivo: ${reasonText}${reason!=="outro"&&notes?`. ${notes}`:""}`}],changeType:"fechar_vigencia_direto",closureReason:reason,closureReasonLabel:reasonText,closureNotes:notes,enrollments:selectedCourse.enrollments,units:selectedCourse.unitCodes||[],source:"Fechamento direto registrado no sistema"};
+    const {data,error}=await supabaseClient.from("evaluations").update({status:"concluida",current_question:null,final_result:"FECHAR A VIGÊNCIA",justification,state,completed_at:new Date().toISOString()}).eq("id",reservation.remoteId).select().single();
+    if(error)throw error;
+    const completed=mapRemoteEvaluation(data);
+    history=history.filter(item=>String(item.code)!==String(selectedCourse.code));history.unshift(completed);
+    evaluationDrafts=evaluationDrafts.filter(item=>String(item.code)!==String(selectedCourse.code));
+    $("direct-closure-modal").classList.remove("open");$("direct-closure-modal").setAttribute("aria-hidden","true");
+    removeFromPending(selectedCourse.code);renderHistory();renderDrafts();reset();toast("Vigência fechada com o motivo registrado.");
+  }catch(error){
+    if(error?.code==="23505"){$("direct-closure-modal").classList.remove("open");$("direct-closure-modal").setAttribute("aria-hidden","true");reset();toast("Este curso está reservado por outro avaliador.")}
+    else if(!handleSupabaseError(error))toast("Não foi possível fechar a vigência.");
+  }finally{savingDirectClosure=false;button.textContent=originalLabel;button.disabled=!$("direct-closure-reason").value}
+}
 async function saveAreaChange(){
   if(savingAreaChange||!selectedCourse)return;
   const targetArea=$("area-change-target").value;
@@ -783,6 +832,7 @@ function openHistory(id){
   $("history-modal-title").textContent=item.name;
   $("history-modal-code").textContent=`Código ${item.code} · ${item.criterion}`;
   $("history-modal-facts").innerHTML=`<strong>${escapeHtml(course?.type||"Tipo não informado")}</strong><span>${escapeHtml(course?.strategy||"Modalidade não informada")} · ${course?.hours?`${escapeHtml(course.hours)} h`:"Carga horária não informada"}</span>`;
+  $("history-course-offers-link").href=senaiOffersUrl(item.name);
   const resultClass=normalize(item.result).includes("reestruturar")?"reestruturar":normalize(item.result).includes("fechar")?"fechar":"manter";
   $("history-result-strip").className=`history-result-strip ${resultClass}`;
   $("history-result-strip").innerHTML=`<span>Decisão registrada</span><strong>${escapeHtml(formatDecisionResult(item.result))}</strong>`;
@@ -1088,6 +1138,12 @@ $("course-search").addEventListener("input",searchCourses);
 $("clear-search").onclick=()=>{$("course-search").value="";searchCourses();$("course-search").focus()};
 document.querySelectorAll(".back-search").forEach(b=>b.onclick=reset);
 $("start-evaluation").onclick=startEvaluation;
+$("direct-closure-open").onclick=openDirectClosure;
+$("direct-closure-save").onclick=saveDirectClosure;
+$("direct-closure-close").onclick=closeDirectClosure;
+$("direct-closure-cancel").onclick=closeDirectClosure;
+$("direct-closure-reason").onchange=event=>$("direct-closure-save").disabled=!event.target.value;
+$("direct-closure-modal").onclick=event=>{if(event.target===$("direct-closure-modal"))closeDirectClosure()};
 $("area-change-open").onclick=openAreaChange;
 $("area-change-target").onchange=()=>$("area-change-save").disabled=!$("area-change-target").value;
 $("area-change-save").onclick=saveAreaChange;

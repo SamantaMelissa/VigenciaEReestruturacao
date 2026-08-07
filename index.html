@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=20260807-history-layout">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260807-direct-closure">
 </head>
 <body>
   <div class="shell">
@@ -93,6 +93,7 @@
             </div>
             <div class="panel-actions">
               <button class="btn secondary back-search">Escolher outro</button>
+              <button class="btn direct-closure-trigger" id="direct-closure-open">Fechar a vigência</button>
               <button class="btn area-change-trigger" id="area-change-open">Alterar segmento ou área de atuação</button>
               <button class="btn primary" id="start-evaluation">Confirmar e iniciar análise <span>→</span></button>
             </div>
@@ -217,7 +218,7 @@
   <div class="history-modal completed-history-modal" id="history-modal" aria-hidden="true">
     <div class="history-modal-card">
       <div class="history-modal-head">
-        <div><h2 id="history-modal-title"></h2><p id="history-modal-code"></p></div><div class="history-modal-facts" id="history-modal-facts"></div>
+        <div><h2 id="history-modal-title"></h2><p id="history-modal-code"></p></div><div class="history-modal-facts" id="history-modal-facts"></div><div class="history-modal-links"><a href="https://sge790.com.br/Redirect/PlanoCruso" target="_blank" rel="noopener noreferrer">Plano de curso ↗</a><a id="history-course-offers-link" href="https://www.sp.senai.br/cursos/0/0" target="_blank" rel="noopener noreferrer">Curso no SENAI ↗</a></div>
         <button id="history-modal-close" aria-label="Fechar">×</button>
       </div>
       <div class="history-result-strip" id="history-result-strip"></div>
@@ -303,10 +304,25 @@
       </div>
     </div>
   </div>
+  <div class="scenario-fix-modal direct-closure-modal" id="direct-closure-modal" aria-hidden="true">
+    <div class="scenario-fix-card" role="dialog" aria-modal="true" aria-labelledby="direct-closure-title">
+      <div class="scenario-fix-head"><div><span>DESFECHO DIRETO</span><h2 id="direct-closure-title">Fechar a vigência</h2></div><button type="button" id="direct-closure-close" aria-label="Fechar">×</button></div>
+      <p>Registre por que o curso <strong id="direct-closure-course"></strong> deve ter a vigência fechada sem percorrer o questionário.</p>
+      <div class="area-change-form">
+        <label>Motivo do fechamento
+          <select id="direct-closure-reason"><option value="inativo_sistema">Inativo no sistema</option><option value="curso_substituido">Curso substituído por outro título</option><option value="sem_perspectiva_oferta">Sem perspectiva de oferta</option><option value="outro">Outro motivo</option></select>
+        </label>
+        <label>Complemento ou observação
+          <textarea id="direct-closure-notes" rows="4" placeholder="Acrescente informações que ajudem a justificar a decisão..."></textarea>
+        </label>
+      </div>
+      <div class="scenario-fix-actions"><button class="btn secondary" type="button" id="direct-closure-cancel">Cancelar</button><button class="btn primary" type="button" id="direct-closure-save">Confirmar fechamento</button></div>
+    </div>
+  </div>
   <script src="assets/data/courses-data.js?v=20260804-fic-override"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-service.js?v=20260805-reevaluate"></script>
-  <script src="assets/js/app.js?v=20260807-course-type"></script>
+  <script src="assets/js/app.js?v=20260807-direct-closure"></script>
 </body>
 </html>
