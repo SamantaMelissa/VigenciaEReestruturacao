@@ -1,6 +1,7 @@
 const $=id=>document.getElementById(id);
 const normalize=text=>String(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const escapeHtml=text=>String(text??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
+const cleanScenarioName=text=>String(text||"").replace(/^\s*\(\s*\d+\s*\)\s*/,"").trim();
 const formatResult=text=>{const value=String(text||"").trim().toLocaleLowerCase("pt-BR");return value?value.charAt(0).toLocaleUpperCase("pt-BR")+value.slice(1):"Não informado"};
 const formatUnit=code=>{const digits=String(code??"").replace(/\D/g,"");return digits.length===3?`${digits[0]}.${digits.slice(1)}`:String(code??"")};
 let completed=[];
@@ -71,10 +72,10 @@ function render(){
   const query=normalize($("history-search").value);
   const items=completed.filter(item=>normalize(`${item.name} ${item.code} ${item.result}`).includes(query));
   $("completed-total").textContent=completed.length.toLocaleString("pt-BR");
-  $("history-list").innerHTML=items.length?items.map(item=>`<article class="history-row" data-history-id="${item.id}">
-    <span class="history-icon">◇</span><div class="history-main"><span class="history-source">${item.sourceId?"Planilha de definição":"Sistema"}</span><strong>${escapeHtml(item.name)}</strong><small>Código ${escapeHtml(item.code)} · ${escapeHtml(item.criterion)}</small></div>
+  $("history-list").innerHTML=items.length?items.map(item=>{const course=(window.COURSES_DATA||[]).find(entry=>String(entry.code)===String(item.code))||{};const courseDetails=[`Código ${item.code}`,item.criterion,course.strategy||"Modalidade não informada",course.hours?`${course.hours} h`:"Carga horária não informada"].map(escapeHtml).join(" · ");return `<article class="history-row" data-history-id="${item.id}">
+    <span class="history-icon">◇</span><div class="history-main"><span class="history-source">${item.sourceId?"Planilha de definição":"Sistema"}</span><strong>${escapeHtml(item.name)}</strong><small>${courseDetails}</small></div>
     <div class="history-date"><span>Registrado em</span><strong>${escapeHtml(item.date)}</strong></div><span class="status ${resultClass(item.result)}">${escapeHtml(formatResult(item.result))}</span><span class="history-open">Ver processo →</span>
-  </article>`).join(""):`<div class="history-empty">Nenhuma análise concluída encontrada.</div>`;
+  </article>`}).join(""):`<div class="history-empty">Nenhuma análise concluída encontrada.</div>`;
   document.querySelectorAll("[data-history-id]").forEach(card=>card.onclick=()=>openHistory(card.dataset.historyId));
 }
 function openHistory(id){
@@ -86,11 +87,11 @@ function openHistory(id){
   $("history-result-strip").innerHTML=`<span>Decisão registrada</span><strong>${escapeHtml(formatResult(item.result))}</strong>`;
   const enrollments=Object.keys(item.enrollments).length?item.enrollments:(course?.enrollments||{}),units=item.units.length?item.units:(course?.unitCodes||[]);
   const areaDisplay=mappedAreas(item);
-  const overviewAreas=/^(?:não informada|nenhuma área mapeada|fechar vigência|troca de área)$/i.test(areaDisplay.trim())?[]:areaDisplay.split(";").map(area=>area.trim()).filter(Boolean);
+  const overviewAreas=/^(?:não informada|nenhuma área mapeada|fechar vigência|troca de área)$/i.test(areaDisplay.trim())?[]:areaDisplay.split(";").map(cleanScenarioName).filter(Boolean);
   $("history-overview").innerHTML=`<div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div><div><span>Origem</span><strong>${escapeHtml(item.source)}</strong></div><div><span>Área mapeada / Desfecho</span><strong>${escapeHtml(areaDisplay)}</strong></div><div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div><div><span>Unidades ofertantes</span><strong>${units.length?units.map(formatUnit).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
   let processItems=(item.decisionPath||[]).map(step=>{
     const isAreaStep=normalize(step.text).includes("cenarios mapeados");
-    const recordedScenarios=step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[]);
+    const recordedScenarios=(step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[])).map(cleanScenarioName).filter(Boolean);
     const scenarios=isAreaStep&&!recordedScenarios.length?overviewAreas:recordedScenarios;
     return {...step,scenarios};
   });
