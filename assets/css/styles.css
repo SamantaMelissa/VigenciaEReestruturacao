@@ -824,7 +824,8 @@ textarea {
 .area-change-trigger:hover { background: #d99400; color: #241900; }
 .direct-closure-trigger { border: 1px solid #b52a30; background: #fff; color: #a32026; }
 .direct-closure-trigger:hover { background: #a32026; color: #fff; }
-#validate-view .panel-actions { flex-wrap: wrap; }
+#validate-view .panel-actions { flex-wrap: nowrap; }
+#validate-view .panel-actions .btn { flex: 1 1 0; min-width: 0; padding-right: 11px; padding-left: 11px; white-space: nowrap; }
 .area-change-form { display: grid; gap: 15px; }
 .area-change-form label {
   display: grid;
