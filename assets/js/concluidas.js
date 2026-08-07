@@ -86,17 +86,18 @@ function openHistory(id){
   $("history-result-strip").innerHTML=`<span>Decisão registrada</span><strong>${escapeHtml(formatResult(item.result))}</strong>`;
   const enrollments=Object.keys(item.enrollments).length?item.enrollments:(course?.enrollments||{}),units=item.units.length?item.units:(course?.unitCodes||[]);
   const areaDisplay=mappedAreas(item);
+  const overviewAreas=/^(?:não informada|nenhuma área mapeada|fechar vigência|troca de área)$/i.test(areaDisplay.trim())?[]:areaDisplay.split(";").map(area=>area.trim()).filter(Boolean);
   $("history-overview").innerHTML=`<div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div><div><span>Origem</span><strong>${escapeHtml(item.source)}</strong></div><div><span>Área mapeada / Desfecho</span><strong>${escapeHtml(areaDisplay)}</strong></div><div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div><div><span>Unidades ofertantes</span><strong>${units.length?units.map(formatUnit).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
   let processItems=(item.decisionPath||[]).map(step=>{
     const isAreaStep=normalize(step.text).includes("cenarios mapeados");
     const recordedScenarios=step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[]);
-    const scenarios=isAreaStep&&item.mappedAreasByTitle.length&&(item.mappedAreaAssignedManually||!recordedScenarios.length)?item.mappedAreasByTitle:recordedScenarios;
+    const scenarios=isAreaStep&&!recordedScenarios.length?overviewAreas:recordedScenarios;
     return {...step,scenarios};
   });
   if(!processItems.length&&item.justification)processItems=parseImportedDecisionPath(item.justification);
-  if(item.mappedAreasByTitle.length)processItems=processItems.map(step=>{
+  if(overviewAreas.length)processItems=processItems.map(step=>{
     const isAreaStep=normalize(step.text).includes("cenarios mapeados");
-    return isAreaStep&&!step.scenarios?.length?{...step,scenarios:item.mappedAreasByTitle}:step;
+    return isAreaStep&&!step.scenarios?.length?{...step,scenarios:overviewAreas}:step;
   });
   const canEdit=item.createdBy===appSession.user.id||["gestor","admin"].includes(window.appProfile?.role);
   const canAssignArea=!normalize(item.result).includes("fechar")&&!normalize(item.result).includes("troca de area")&&item.changeType!=="troca_area";
