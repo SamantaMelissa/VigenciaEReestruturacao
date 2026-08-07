@@ -752,13 +752,14 @@ function renderHistory(){
   if(!$("history-list"))return;
   const q=normalize($("history-search").value),items=history.filter(h=>normalize(`${h.name} ${h.code} ${h.result}`).includes(q));
   $("history-list").innerHTML=items.length?items.map(h=>{
-    const resultClass=normalize(h.result).includes("reestruturar")?"reestruturar":normalize(h.result).includes("fechar")?"fechar":"";
-    const source=h.sourceId?"Planilha de definição":"Sistema";
+    const resultClass=normalize(h.result).includes("reestruturar")?"reestruturar":normalize(h.result).includes("fechar")?"fechar":"manter";
+    const course=COURSES.find(entry=>String(entry.code)===String(h.code))||{};
     return `<article class="history-row" data-history-id="${h.id}">
-      <span class="history-icon">◇</span>
-      <div class="history-main"><span class="history-source">${source}</span><strong>${escapeHtml(h.name)}</strong><small>Código ${h.code} · ${escapeHtml(h.criterion)}</small></div>
-      <div class="history-date"><span>Registrado em</span><strong>${escapeHtml(h.date)}</strong></div>
       <span class="status ${resultClass}">${escapeHtml(formatDecisionResult(h.result))}</span>
+      <span class="history-icon">◇</span>
+      <div class="history-main"><strong>${escapeHtml(h.name)}</strong><small>Código ${h.code} · ${escapeHtml(h.criterion)}</small></div>
+      <div class="history-course-facts"><strong>${escapeHtml(course.type||"Tipo não informado")}</strong><span>${escapeHtml(course.strategy||"Modalidade não informada")} · ${course.hours?`${escapeHtml(course.hours)} h`:"Carga horária não informada"}</span></div>
+      <div class="history-date"><span>Registrado em</span><strong>${escapeHtml(h.date)}</strong></div>
       <span class="history-open">Ver processo →</span>
       <button class="delete" data-id="${h.id}" title="Excluir">×</button>
     </article>`;
@@ -778,9 +779,10 @@ function renderHistory(){
 function openHistory(id){
   const item=history.find(entry=>String(entry.id)===String(id));if(!item)return;
   activeHistoryId=item.id;
-  const course=COURSES.find(entry=>entry.code===item.code);
+  const course=COURSES.find(entry=>String(entry.code)===String(item.code));
   $("history-modal-title").textContent=item.name;
-  $("history-modal-code").textContent=`Código ${item.code} · ${item.source||"Registro do sistema"}`;
+  $("history-modal-code").textContent=`Código ${item.code} · ${item.criterion}`;
+  $("history-modal-facts").innerHTML=`<strong>${escapeHtml(course?.type||"Tipo não informado")}</strong><span>${escapeHtml(course?.strategy||"Modalidade não informada")} · ${course?.hours?`${escapeHtml(course.hours)} h`:"Carga horária não informada"}</span>`;
   const resultClass=normalize(item.result).includes("reestruturar")?"reestruturar":normalize(item.result).includes("fechar")?"fechar":"manter";
   $("history-result-strip").className=`history-result-strip ${resultClass}`;
   $("history-result-strip").innerHTML=`<span>Decisão registrada</span><strong>${escapeHtml(formatDecisionResult(item.result))}</strong>`;
@@ -788,7 +790,6 @@ function openHistory(id){
   const units=item.units||(course?course.unitCodes:[]);
   $("history-overview").innerHTML=`
     <div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div>
-    <div><span>Origem</span><strong>${escapeHtml(item.source||"Avaliação do sistema")}</strong></div>
     <div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div>
     <div><span>Unidades ofertantes</span><strong>${units&&units.length?units.map(formatUnitCode).map(escapeHtml).join(", "):"Não registradas"}</strong></div>
     ${item.changeType==="troca_area"?`<div><span>Área anterior</span><strong>${escapeHtml(item.previousArea||course?.area||"Não informada")}</strong></div><div><span>Nova área de atuação</span><strong>${escapeHtml(item.targetArea||"Não informada")}</strong></div>`:""}`;

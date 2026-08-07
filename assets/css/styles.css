@@ -3862,3 +3862,30 @@ html.full-hd-scale .contact-modal-actions .btn {
   .scenario-fix-card,
   .profile-card { max-height: calc(100dvh - 14px); }
 }
+
+/* Layout final dos cards de decisão; deve prevalecer sobre os estilos legados. */
+.history-row { grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-rows: auto auto auto; padding: 0 18px 18px; border-top: 1px solid var(--line); overflow: hidden; }
+.history-row .status { grid-column: 1 / -1; grid-row: 1; justify-self: stretch; max-width: none; margin: 0 -18px 7px; padding: 10px 18px; border-radius: 0; text-align: left; text-transform: uppercase; letter-spacing: .04em; }
+.history-icon { grid-column: 1; grid-row: 2; }
+.history-main { grid-column: 2; grid-row: 2; align-self: center; }
+.history-course-facts { grid-column: 3; grid-row: 2; align-self: center; min-width: 105px; padding-left: 12px; text-align: right; }
+.history-course-facts strong, .history-course-facts span { display: block; white-space: nowrap; }
+.history-course-facts strong { color: #292929; font-size: 9px; }
+.history-course-facts span { margin-top: 3px; color: var(--muted); font-size: 8px; }
+.history-row .history-course-facts { max-width: 145px; }
+.history-row .history-course-facts strong { white-space: normal; line-height: 1.25; }
+.history-date { grid-column: 1 / -1; grid-row: 3; }
+.history-row .delete { top: 6px; color: currentColor; z-index: 1; }
+.history-modal-head { align-items: center; gap: 18px; }
+.history-modal-head > div:first-child { min-width: 0; }
+.history-modal-facts { margin-left: auto; padding-left: 18px; border-left: 1px solid var(--line); text-align: right; }
+.history-modal-facts strong, .history-modal-facts span { display: block; white-space: nowrap; }
+.history-modal-facts strong { color: #292929; font-size: 10px; }
+.history-modal-facts span { margin-top: 4px; color: var(--muted); font-size: 9px; }
+@media (max-width: 680px) {
+  .history-row { grid-template-columns: 40px minmax(0, 1fr); }
+  .history-course-facts { grid-column: 2; grid-row: 3; padding: 0; text-align: left; }
+  .history-date { grid-row: 4; }
+  .history-modal-head { align-items: flex-start; flex-wrap: wrap; }
+  .history-modal-facts { order: 3; width: 100%; margin: 0; padding: 9px 0 0; border-left: 0; border-top: 1px solid var(--line); text-align: left; }
+}

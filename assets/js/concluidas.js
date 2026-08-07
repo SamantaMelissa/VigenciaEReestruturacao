@@ -72,9 +72,9 @@ function render(){
   const query=normalize($("history-search").value);
   const items=completed.filter(item=>normalize(`${item.name} ${item.code} ${item.result}`).includes(query));
   $("completed-total").textContent=completed.length.toLocaleString("pt-BR");
-  $("history-list").innerHTML=items.length?items.map(item=>{const course=(window.COURSES_DATA||[]).find(entry=>String(entry.code)===String(item.code))||{};const courseDetails=[`Código ${item.code}`,item.criterion,course.strategy||"Modalidade não informada",course.hours?`${course.hours} h`:"Carga horária não informada"].map(escapeHtml).join(" · ");return `<article class="history-row" data-history-id="${item.id}">
-    <span class="history-icon">◇</span><div class="history-main"><span class="history-source">${item.sourceId?"Planilha de definição":"Sistema"}</span><strong>${escapeHtml(item.name)}</strong><small>${courseDetails}</small></div>
-    <div class="history-date"><span>Registrado em</span><strong>${escapeHtml(item.date)}</strong></div><span class="status ${resultClass(item.result)}">${escapeHtml(formatResult(item.result))}</span><span class="history-open">Ver processo →</span>
+  $("history-list").innerHTML=items.length?items.map(item=>{const course=(window.COURSES_DATA||[]).find(entry=>String(entry.code)===String(item.code))||{};return `<article class="history-row" data-history-id="${item.id}">
+    <span class="status ${resultClass(item.result)}">${escapeHtml(formatResult(item.result))}</span><span class="history-icon">◇</span><div class="history-main"><strong>${escapeHtml(item.name)}</strong><small>Código ${escapeHtml(item.code)} · ${escapeHtml(item.criterion)}</small></div><div class="history-course-facts"><strong>${escapeHtml(course.type||"Tipo não informado")}</strong><span>${escapeHtml(course.strategy||"Modalidade não informada")} · ${course.hours?`${escapeHtml(course.hours)} h`:"Carga horária não informada"}</span></div>
+    <div class="history-date"><span>Registrado em</span><strong>${escapeHtml(item.date)}</strong></div><span class="history-open">Ver processo →</span>
   </article>`}).join(""):`<div class="history-empty">Nenhuma análise concluída encontrada.</div>`;
   document.querySelectorAll("[data-history-id]").forEach(card=>card.onclick=()=>openHistory(card.dataset.historyId));
 }
@@ -82,13 +82,14 @@ function openHistory(id){
   const item=completed.find(entry=>String(entry.id)===String(id));if(!item)return;
   activeHistoryId=item.id;
   const course=(window.COURSES_DATA||[]).find(entry=>String(entry.code)===String(item.code));
-  $("history-modal-title").textContent=item.name;$("history-modal-code").textContent=`Código ${item.code} · ${item.source}`;
+  $("history-modal-title").textContent=item.name;$("history-modal-code").textContent=`Código ${item.code} · ${item.criterion}`;
+  $("history-modal-facts").innerHTML=`<strong>${escapeHtml(course?.type||"Tipo não informado")}</strong><span>${escapeHtml(course?.strategy||"Modalidade não informada")} · ${course?.hours?`${escapeHtml(course.hours)} h`:"Carga horária não informada"}</span>`;
   $("history-result-strip").className=`history-result-strip ${resultClass(item.result)}`;
   $("history-result-strip").innerHTML=`<span>Decisão registrada</span><strong>${escapeHtml(formatResult(item.result))}</strong>`;
   const enrollments=Object.keys(item.enrollments).length?item.enrollments:(course?.enrollments||{}),units=item.units.length?item.units:(course?.unitCodes||[]);
   const areaDisplay=mappedAreas(item);
   const overviewAreas=/^(?:não informada|nenhuma área mapeada|fechar vigência|troca de área)$/i.test(areaDisplay.trim())?[]:areaDisplay.split(";").map(cleanScenarioName).filter(Boolean);
-  $("history-overview").innerHTML=`<div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div><div><span>Origem</span><strong>${escapeHtml(item.source)}</strong></div><div><span>Área mapeada / Desfecho</span><strong>${escapeHtml(areaDisplay)}</strong></div><div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div><div><span>Unidades ofertantes</span><strong>${units.length?units.map(formatUnit).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
+  $("history-overview").innerHTML=`<div><span>Critério aplicado</span><strong>${escapeHtml(item.criterion)}</strong></div><div><span>Área mapeada / Desfecho</span><strong>${escapeHtml(areaDisplay)}</strong></div><div><span>Matrículas disponíveis</span><strong>${Object.keys(enrollments).length?Object.entries(enrollments).map(([year,value])=>`${year}: ${Number(value).toLocaleString("pt-BR")}`).join(" · "):"Não registradas"}</strong></div><div><span>Unidades ofertantes</span><strong>${units.length?units.map(formatUnit).map(escapeHtml).join(", "):"Não registradas"}</strong></div>`;
   let processItems=(item.decisionPath||[]).map(step=>{
     const isAreaStep=normalize(step.text).includes("cenarios mapeados");
     const recordedScenarios=(step.scenarios?.length?step.scenarios:(item.scenarioSelections?.[step.step]||[])).map(cleanScenarioName).filter(Boolean);
