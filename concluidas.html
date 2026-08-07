@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=20260807-decision-colors">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260807-load-more">
 </head>
 <body>
   <div class="shell">
@@ -32,6 +32,7 @@
           <div class="history-actions"><label class="search-box shared-search" for="history-search"><span>⌕</span><input id="history-search" autocomplete="off" placeholder="Buscar curso, código ou decisão"></label><button class="btn secondary" id="export-csv">Exportar Excel ↓</button></div>
         </div>
         <div class="history-list" id="history-list"></div>
+        <div class="load-more-wrap"><button class="btn secondary" id="completed-load-more" type="button" hidden>Carregar mais</button></div>
       </section>
     </main>
     <footer><span>SENAI · Fábrica de Cursos</span><span>Histórico de análises concluídas</span></footer>
@@ -77,6 +78,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="assets/js/supabase-service.js?v=20260805-multiple-areas"></script>
-  <script src="assets/js/concluidas.js?v=20260807-decision-colors"></script>
+  <script src="assets/js/concluidas.js?v=20260807-load-more"></script>
 </body>
 </html>

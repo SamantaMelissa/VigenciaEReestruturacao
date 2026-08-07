@@ -3900,3 +3900,10 @@ html.full-hd-scale .contact-modal-actions .btn {
   .history-modal-facts { order: 3; width: 100%; margin: 0; padding: 9px 0 0; border-left: 0; border-top: 1px solid var(--line); text-align: left; }
   .history-modal-links { order: 4; width: 100%; flex-direction: row; flex-wrap: wrap; padding: 9px 0 0; border-left: 0; }
 }
+
+.load-more-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+.load-more-wrap .btn { min-width: 190px; }

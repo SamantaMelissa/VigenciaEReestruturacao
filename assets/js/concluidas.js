@@ -11,6 +11,8 @@ const formatResult=text=>{const value=String(text||"").trim().toLocaleLowerCase(
 const formatUnit=code=>{const digits=String(code??"").replace(/\D/g,"");return digits.length===3?`${digits[0]}.${digits.slice(1)}`:String(code??"")};
 let completed=[];
 let activeHistoryId=null;
+const CARD_PAGE_SIZE=12;
+let completedVisibleCount=CARD_PAGE_SIZE;
 
 function parseImportedDecisionPath(justification){
   const fragments=String(justification||"").split(/[;\r\n]+/).map(text=>text.trim()).filter(Boolean);
@@ -76,11 +78,15 @@ function resultClass(result){const value=normalize(result);return value.includes
 function render(){
   const query=normalize($("history-search").value);
   const items=completed.filter(item=>normalize(`${item.name} ${item.code} ${item.result}`).includes(query));
+  const visibleItems=items.slice(0,completedVisibleCount);
   $("completed-total").textContent=completed.length.toLocaleString("pt-BR");
-  $("history-list").innerHTML=items.length?items.map(item=>{const course=(window.COURSES_DATA||[]).find(entry=>String(entry.code)===String(item.code))||{};return `<article class="history-row" data-history-id="${item.id}">
+  $("history-list").innerHTML=items.length?visibleItems.map(item=>{const course=(window.COURSES_DATA||[]).find(entry=>String(entry.code)===String(item.code))||{};return `<article class="history-row" data-history-id="${item.id}">
     <span class="status ${resultClass(item.result)}">${escapeHtml(formatResult(item.result))}</span><span class="history-icon ${resultClass(item.result)}">◇</span><div class="history-main"><strong>${escapeHtml(item.name)}</strong><small>Código ${escapeHtml(item.code)} · ${escapeHtml(item.criterion)}</small></div><div class="history-course-facts"><strong>${escapeHtml(course.type||"Tipo não informado")}</strong><span>${escapeHtml(course.strategy||"Modalidade não informada")} · ${course.hours?`${escapeHtml(course.hours)} h`:"Carga horária não informada"}</span></div>
     <div class="history-date"><span>Registrado em</span><strong>${escapeHtml(item.date)}</strong></div><span class="history-open">Ver processo →</span>
   </article>`}).join(""):`<div class="history-empty">Nenhuma análise concluída encontrada.</div>`;
+  const remaining=Math.max(0,items.length-visibleItems.length);
+  $("completed-load-more").hidden=remaining===0;
+  $("completed-load-more").textContent=remaining?`Carregar mais (${remaining} restantes)`:"Carregar mais";
   document.querySelectorAll("[data-history-id]").forEach(card=>card.onclick=()=>openHistory(card.dataset.historyId));
 }
 function openHistory(id){
@@ -249,5 +255,7 @@ async function initialize(){
   }catch(error){handleSupabaseError(error);showSystemUnavailable()}
 }
 $("history-search").oninput=render;$("export-csv").onclick=exportExcel;$("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-assign-area").onclick=openAssignArea;$("history-modal-reevaluate").onclick=reevaluateCourse;$("reevaluation-confirm-submit").onclick=confirmReevaluation;$("reevaluation-confirm-close").onclick=closeReevaluationConfirmation;$("reevaluation-confirm-cancel").onclick=closeReevaluationConfirmation;$("reevaluation-confirm-modal").onclick=event=>{if(event.target===$("reevaluation-confirm-modal"))closeReevaluationConfirmation()};$("assign-area-options").querySelectorAll("[data-mapped-area]").forEach(button=>button.onclick=()=>{button.classList.toggle("selected");$("assign-area-save").disabled=!$("assign-area-options").querySelector("[data-mapped-area].selected")});$("assign-area-save").onclick=saveAssignedArea;$("assign-area-close").onclick=closeAssignArea;$("assign-area-cancel").onclick=closeAssignArea;$("assign-area-modal").onclick=event=>{if(event.target===$("assign-area-modal"))closeAssignArea()};$("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
+$("history-search").oninput=()=>{completedVisibleCount=CARD_PAGE_SIZE;render()};
+$("completed-load-more").onclick=()=>{completedVisibleCount+=CARD_PAGE_SIZE;render()};
 document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;if($("reevaluation-confirm-modal").classList.contains("open"))closeReevaluationConfirmation();else if($("history-modal").classList.contains("open"))closeHistory()});
 initialize();

@@ -52,6 +52,8 @@ let history=[];
 let contactQueue=[];
 let evaluationDrafts=[];
 let pendingCourses=[];
+const CARD_PAGE_SIZE=12;
+let pendingVisibleCount=CARD_PAGE_SIZE;
 let claimingCourse=false;
 let refreshingFromRealtime=false;
 let validationHandoffInProgress=false;
@@ -279,7 +281,8 @@ function renderPending(){
   const query=normalize($("pending-search").value);
   const filter=$("pending-filter").value;
   const items=pendingCourses.filter(item=>(filter==="todos"||item.status===filter)&&normalize(`${item.course_name} ${item.course_code}`).includes(query));
-  $("pending-list").innerHTML=items.length?items.map(item=>{
+  const visibleItems=items.slice(0,pendingVisibleCount);
+  $("pending-list").innerHTML=items.length?visibleItems.map(item=>{
     const course=COURSES.find(entry=>String(entry.code)===String(item.course_code));
     const ready=item.status==="retorno_disponivel",saved=item.status==="rascunho_salvo",inProgress=item.status==="em_andamento",inValidation=item.status==="em_validacao";
     const href=(inProgress||saved)?`?retomar=${encodeURIComponent(item.course_code)}`:`?analisar=${encodeURIComponent(item.course_code)}`;
@@ -290,6 +293,9 @@ function renderPending(){
       ${inValidation?'<span class="pending-action unavailable validation">Aguardando retorno da unidade</span>':ready?`<button class="pending-action ready" type="button" data-claim-code="${escapeHtml(item.course_code)}">Assumir e continuar →</button>`:saved&&!item.canResume?`<button class="pending-action saved" type="button" data-claim-pending="${escapeHtml(item.course_code)}">Assumir e continuar →</button>`:inProgress&&!item.canResume?'<span class="pending-action unavailable">Em análise pela equipe</span>':`<a class="pending-action${saved?" saved":""}" href="${href}">${inProgress||saved?"Continuar análise":"Iniciar análise"} →</a>`}
     </article>`;
   }).join(""):`<div class="manager-empty">Nenhum curso encontrado com esses filtros.</div>`;
+  const remaining=Math.max(0,items.length-visibleItems.length);
+  $("pending-load-more").hidden=remaining===0;
+  $("pending-load-more").textContent=remaining?`Carregar mais (${remaining} restantes)`:"Carregar mais";
   document.querySelectorAll("[data-claim-code]").forEach(button=>button.onclick=()=>claimReadyEvaluation(button.dataset.claimCode,button));
   document.querySelectorAll("[data-claim-pending]").forEach(button=>button.onclick=()=>claimPendingEvaluation(button.dataset.claimPending,button));
 }
@@ -1176,7 +1182,8 @@ document.querySelectorAll(".decision").forEach(b=>b.onclick=()=>answer(b.dataset
 $("quiz-back").onclick=backQuestion;$("restart").onclick=reset;$("result-back").onclick=returnToLastQuestion;$("save-result").onclick=saveResult;
 if($("history-search"))$("history-search").oninput=renderHistory;
 if($("export-csv"))$("export-csv").onclick=exportCsv;
-$("pending-search").oninput=renderPending;$("pending-filter").onchange=renderPending;
+$("pending-search").oninput=()=>{pendingVisibleCount=CARD_PAGE_SIZE;renderPending()};$("pending-filter").onchange=()=>{pendingVisibleCount=CARD_PAGE_SIZE;renderPending()};
+$("pending-load-more").onclick=()=>{pendingVisibleCount+=CARD_PAGE_SIZE;renderPending()};
 $("history-modal-close").onclick=closeHistory;$("history-modal-ok").onclick=closeHistory;$("history-modal-reevaluate").onclick=reevaluateHistoryEvaluation;$("reevaluation-confirm-submit").onclick=confirmReevaluation;$("reevaluation-confirm-close").onclick=closeReevaluationConfirmation;$("reevaluation-confirm-cancel").onclick=closeReevaluationConfirmation;$("reevaluation-confirm-modal").onclick=event=>{if(event.target===$("reevaluation-confirm-modal"))closeReevaluationConfirmation()};
 $("history-modal-edit").onclick=editHistoryEvaluation;
 $("history-modal").onclick=event=>{if(event.target===$("history-modal"))closeHistory()};
