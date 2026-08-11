@@ -18,6 +18,7 @@ Sistema web para organizar e registrar decisões sobre vigência, reestruturaç�
 - Central de Validações para contatos com unidades.
 - Fila pública de retornos positivos: qualquer avaliador pode assumir e continuar.
 - Lista de análises pendentes e painel gestor com indicadores consolidados.
+- Propostas de novos cursos, com análise gerencial antes da inclusão no catálogo oficial.
 - Autenticação, cadastro de usuários e perfis de acesso pelo Supabase.
 - Layout responsivo, identidade visual em vermelho, preto e branco e favicon próprio.
 
@@ -50,6 +51,7 @@ Na Central de Validações, a pessoa responsável pelo contato apenas registra o
 | `concluidas.html` | Consulta, detalhamento e exportação das análises concluídas |
 | `validacoes.html` | Central de contatos e validações com as unidades |
 | `gestao.html` | Indicadores, acompanhamento gerencial e trocas de área |
+| `propostas.html` | Sugestão e acompanhamento de novos cursos para o catálogo |
 
 ## Estrutura do projeto
 
@@ -109,6 +111,15 @@ Esse script:
 Se o botão não aparecer, confirme primeiro se esse arquivo foi executado no mesmo projeto Supabase usado pelo site.
 
 Os demais arquivos da pasta `supabase/` são migrações ou rotinas específicas. Consulte `supabase/README.md` antes de executá-los e não rode todas as migrações aleatoriamente.
+
+Para habilitar propostas de novos cursos, execute uma vez:
+
+```text
+supabase/enable_course_proposals.sql
+```
+
+As propostas aprovadas ficam prontas para inclusão na planilha/catálogo oficial;
+elas não entram automaticamente em `assets/data/courses-data.js`.
 
 ## Atualização das planilhas
 

@@ -96,3 +96,11 @@ executado novamente quando a planilha for atualizada.
 Em bancos existentes, execute uma vez `enable_shared_pending_claims.sql`.
 O script permite que qualquer usuário autenticado assuma atomicamente um
 rascunho salvo, exceto quando o curso estiver aguardando validação com a unidade.
+
+## 10. Habilitar propostas de novos cursos
+
+Para adicionar a página **Propostas de cursos**, execute uma vez
+`enable_course_proposals.sql`. A migração cria o fluxo de sugestões, histórico
+de alterações e a estrutura de metadados para futuros documentos, como o plano
+de curso. Ela não cria nem publica arquivos no Storage e não altera o catálogo
+oficial de cursos.

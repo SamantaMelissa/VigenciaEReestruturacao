@@ -3907,3 +3907,167 @@ html.full-hd-scale .contact-modal-actions .btn {
   margin-top: 18px;
 }
 .load-more-wrap .btn { min-width: 190px; }
+
+/* Propostas de cursos */
+.proposals-page { padding-bottom: 60px; }
+.proposals-hero { position: relative; overflow: hidden; padding: 58px 5% 96px; align-items: center; }
+.proposals-hero:after {
+  content: "";
+  position: absolute;
+  width: 430px;
+  height: 430px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 50%;
+  right: 7%;
+  top: -260px;
+  box-shadow: 0 0 0 55px rgba(255,255,255,.025), 0 0 0 115px rgba(255,255,255,.018);
+  pointer-events: none;
+}
+.proposals-hero h1 { margin: 8px 0 12px; }
+.proposals-hero p { max-width: 680px; }
+.proposals-hero-actions { position: relative; z-index: 1; align-items: center; }
+.proposals-hero-actions .btn.primary { border: 1px solid rgba(255,255,255,.85); background: #fff; color: #771726; box-shadow: 0 12px 30px rgba(12,8,12,.2); }
+.proposals-hero-actions .btn.primary:hover { background: #f7f1f2; color: #55101a; }
+.proposals-dashboard { width: min(1180px,90%); margin: -42px auto 0; position: relative; }
+.proposals-kpis { display: grid; grid-template-columns: repeat(3,1fr); box-shadow: 0 18px 45px rgba(20,20,20,.13); }
+.proposals-kpis article { padding: 22px 20px; border-right: 1px solid #e3e3e3; border-top: 4px solid var(--blue); background: #fff; }
+.proposals-kpis article:last-child { border-right: 0; }
+.proposals-kpis span, .proposals-kpis strong { display: block; }
+.proposals-kpis span { color: #777; font-size: 8px; font-weight: 800; letter-spacing: .07em; }
+.proposals-kpis strong { margin: 6px 0 2px; color: #292929; font: 900 30px/1 Montserrat,sans-serif; }
+.proposals-panel { margin-top: 18px; padding: 24px; border: 1px solid var(--line); border-top: 3px solid #292929; background: #fff; }
+.proposals-panel-head { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 18px; }
+.proposals-panel-head h2 { margin: 5px 0 0; color: var(--navy); font: 800 20px/1.15 Montserrat,sans-serif; }
+.proposal-filters { display: flex; gap: 8px; }
+.proposal-filters input,.proposal-filters select,.proposal-form-grid input,.proposal-form-grid textarea,.proposal-form-grid select,.proposal-review-card select,.proposal-review-card textarea { width: 100%; border: 1px solid #dcdcdc; border-radius: 7px; background: #fff; color: var(--navy); font: 500 12px Poppins,sans-serif; outline: none; }
+.proposal-filters input:focus,.proposal-filters select:focus,.proposal-form-grid input:focus,.proposal-form-grid textarea:focus,.proposal-form-grid select:focus,.proposal-review-card select:focus,.proposal-review-card textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(193,39,44,.08); }
+.proposal-filters input { width: 245px; padding: 11px 12px; }
+.proposal-filters select { width: 185px; padding: 10px; }
+.proposal-list { display: grid; gap: 12px; }
+.proposal-card { overflow: hidden; border: 1px solid var(--line); background: #fff; transition: box-shadow .18s ease, transform .18s ease; }
+.proposal-card:hover { box-shadow: 0 8px 22px rgba(20,17,18,.07); }
+.proposal-card-top,.proposal-card-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.proposal-card-top { padding: 10px 15px; background: #fbfafb; border-bottom: 1px solid #eee; }
+.proposal-card-top time,.proposal-card-footer>span { color: var(--muted); font-size: 10px; }
+.proposal-status { display: inline-flex; padding: 5px 8px; border-radius: 99px; font-size: 9px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.proposal-status.rascunho { color: #5e6067; background: #eeeef0; }.proposal-status.submetida { color: #9a5600; background: #fff0d9; }.proposal-status.em_analise { color: #005e91; background: #e2f3fc; }.proposal-status.ajustes_solicitados { color: #8a5a00; background: #fff3ce; }.proposal-status.aprovada_para_catalogo { color: #08733e; background: #e3f7eb; }.proposal-status.reprovada,.proposal-status.arquivada { color: #a32b34; background: #fde9eb; }
+.proposal-card-body { display: grid; grid-template-columns: minmax(0,1fr) 310px; gap: 28px; padding: 19px 17px; }
+.proposal-card h3 { margin: 5px 0 8px; color: var(--navy); font: 800 17px/1.2 Montserrat,sans-serif; }.proposal-card p { margin: 0; color: #5f5a5c; font-size: 11px; line-height: 1.6; }
+.proposal-card dl { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin: 0; }.proposal-card dt { color: var(--muted); font-size: 8px; font-weight: 800; text-transform: uppercase; }.proposal-card dd { margin: 4px 0 0; color: var(--navy); font-size: 10px; font-weight: 700; }
+.proposal-card-mapped { margin-top: 12px; }.proposal-card-mapped strong,.proposal-card-mapped span { display: block; }.proposal-card-mapped strong { color: var(--red); font-size: 8px; letter-spacing: .06em; text-transform: uppercase; }.proposal-card-mapped span { margin-top: 3px; color: #564e50; font-size: 10px; font-weight: 700; }
+.proposal-feedback { margin: 0 17px 16px; padding: 12px; border-left: 3px solid var(--red); background: #fff8f8; }.proposal-feedback strong { display: block; margin-bottom: 3px; color: var(--red); font-size: 9px; text-transform: uppercase; }.proposal-feedback p { font-size: 11px; }
+.proposal-card-footer { padding: 11px 17px; border-top: 1px solid #eee; }.proposal-card-footer>div { display: flex; gap: 8px; }.proposal-card-action { border: 0; background: transparent; color: var(--red); cursor: pointer; font: 800 10px Poppins,sans-serif; }.proposal-card-action.primary-action { padding: 7px 10px; color: #fff; background: var(--red); border-radius: 2px; }
+.proposal-empty { display: grid; place-items: center; min-height: 190px; color: var(--muted); text-align: center; }.proposal-empty strong { color: var(--navy); }.proposal-empty span { margin-top: 5px; font-size: 11px; }
+
+/* Modal de propostas: estrutura em etapas (wizard), mesmo padrão dos modais principais. */
+.proposal-modal { position: fixed; z-index: 40; inset: 0; display: none; align-items: center; justify-content: center; padding: 22px; background: rgba(17,17,22,.6); }
+.proposal-modal.open { display: flex; }
+.proposal-modal-card { display: grid; grid-template-rows: auto minmax(0,1fr) auto; width: min(940px,100%); height: min(820px,calc(100dvh - 48px)); max-height: calc(100dvh - 48px); padding: 0; overflow: hidden; overscroll-behavior: contain; background: #fff; border-radius: 12px; box-shadow: 0 24px 70px rgba(0,0,0,.24); }
+.proposal-modal-card > header { display: flex; justify-content: space-between; gap: 18px; padding: 17px 27px; flex-shrink: 0; border-bottom: 1px solid var(--line); }
+.proposal-modal-card > header h2 { margin: 0 0 4px; color: var(--navy); font: 800 18px/1.25 Montserrat,sans-serif; }
+.proposal-modal-card > header p { margin: 0; color: var(--muted); font-size: 9px; }
+.proposal-modal-card > header .proposal-close { border: 0; width: auto; height: auto; padding: 0; background: none; color: #777; font-size: 25px; line-height: 1; cursor: pointer; }
+#proposal-form { display: contents; }
+.proposal-modal-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 27px; scrollbar-gutter: stable; }
+.proposal-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+.proposal-steps span { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 10px; font-weight: 800; }
+.proposal-steps b { display: grid; width: 24px; height: 24px; place-items: center; border: 1.5px solid #d8d5d7; border-radius: 50%; color: #777; font-size: 10px; }
+.proposal-steps .active { color: var(--navy); }
+.proposal-steps .active b { border-color: var(--red); background: var(--red); color: #fff; box-shadow: 0 0 0 4px rgba(193,39,44,.12); }
+.proposal-steps .done { color: #247c50; }
+.proposal-steps .done b { border-color: #3a9266; background: #e3f5eb; color: #247c50; }
+.proposal-progress { height: 4px; background: #e7e7e7; border-radius: 5px; margin: 0 0 22px; overflow: hidden; }
+.proposal-progress i { display: block; height: 100%; background: var(--blue); transition: width .3s ease; width: 0; }
+.proposal-wizard-step { display: none; animation: rise .3s ease; }
+.proposal-wizard-step.active { display: block; }
+.proposal-step-intro { margin: 0 0 18px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.proposal-form-grid { display: grid; gap: 11px 14px; }
+.proposal-form-grid label, .proposal-review-card label { display: grid; gap: 6px; color: #4d494b; font-size: 10px; font-weight: 800; }
+.proposal-form-grid label.wide { grid-column: 1 / -1; }
+.proposal-modal-body .proposal-form-grid { grid-template-columns: repeat(6,minmax(0,1fr)); }
+.proposal-modal-body .proposal-form-grid > label { grid-column: span 3; }
+.proposal-modal-body .proposal-form-grid > .wide { grid-column: 1 / -1; }
+.proposal-modal-body .proposal-form-grid > .proposal-form-compact { grid-column: span 2; }
+.proposal-form-grid input, .proposal-form-grid textarea, .proposal-form-grid select { min-height: 37px; padding: 9px 10px; resize: vertical; }
+.proposal-form-grid small { color: var(--muted); font-size: 9px; font-weight: 500; line-height: 1.45; }
+.proposal-form-grid small strong { color: var(--red); font-weight: 800; }
+.proposal-mapped-areas { margin: 0; padding: 0; border: 0; }
+.proposal-mapped-areas legend { padding: 0; color: #4d494b; font-size: 10px; font-weight: 800; }
+.proposal-mapped-areas > small { display: block; margin: 5px 0 8px; }
+.proposal-mapped-areas .mapped-area-options { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 8px; }
+.proposal-mapped-areas label { display: inline-flex; align-items: center; gap: 5px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 99px; color: #474246; cursor: pointer; font-size: 9px; font-weight: 700; transition: .15s; }
+.proposal-mapped-areas label:hover { border-color: var(--blue); background: #faf0f0; }
+.proposal-mapped-areas input { width: 13px; min-height: 0; margin: 0; padding: 0; accent-color: var(--red); }
+.mapped-area-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 99px; background: #f7e7e8; color: var(--blue); font-size: 10px; font-weight: 800; }
+.chip-remove { border: 0; background: none; color: var(--blue); cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.required-field .field-label, .proposal-mapped-areas .required-mark { color: var(--red); }
+.required-field .field-label::after { content: " *"; }
+.catalog-hint { margin-top: 6px; }
+.catalog-hint.success { color: var(--green); font-weight: 700; }
+.duplicate-warning { margin-top: 6px; padding: 8px 10px; border-radius: 6px; background: #fff0db; color: var(--amber); font-size: 10px; font-weight: 700; }
+.proposal-form-feedback { min-height: 18px; margin: 13px 0 0; color: var(--red); font-size: 11px; }
+.proposal-form-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 10px; }
+.proposal-form-actions.wizard-actions { justify-content: flex-start; align-items: center; }
+.proposal-form-actions .proposal-actions-spacer { flex: 1; }
+.proposal-form-actions .text-btn { font-size: 11px; }
+#proposal-form .proposal-form-actions { position: static; margin: 0; padding: 13px 27px; border-top: 1px solid var(--line); background: #fff; box-shadow: 0 -8px 20px rgba(20,20,20,.05); }
+
+/* Modal de análise gerencial */
+.proposal-review-card { display: block; width: min(590px,100%); height: auto; max-height: calc(100dvh - 48px); padding: 25px; overflow: auto; }
+.proposal-review-card > header { padding: 0 0 19px; border-bottom: 1px solid var(--line); }
+.proposal-review-card form { display: grid; gap: 14px; margin-top: 20px; }
+
+/* Modal de detalhes e histórico */
+.proposal-detail-card { display: grid; grid-template-rows: auto minmax(0,1fr) auto; width: min(940px,100%); height: min(760px,calc(100dvh - 48px)); max-height: calc(100dvh - 48px); padding: 0; overflow: hidden; }
+.proposal-detail-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 22px 27px; }
+.proposal-detail-actions { display: flex; justify-content: flex-end; gap: 9px; padding: 13px 27px; border-top: 1px solid var(--line); background: #fff; }
+.proposal-detail-body .detail-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px 22px; margin-bottom: 0; }
+.proposal-detail-body .detail-grid > div { min-width: 0; }
+.proposal-detail-body .detail-grid > .wide { grid-column: 1 / -1; }
+.proposal-detail-body .detail-grid strong { display: block; color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.proposal-detail-body .detail-grid p { margin: 4px 0 0; color: var(--navy); font-size: 11px; line-height: 1.55; }
+.detail-divider { height: 1px; margin: 20px 0; background: var(--line); }
+.timeline { display: grid; gap: 14px; margin-top: 14px; }
+.timeline > strong { font: 800 13px Montserrat,sans-serif; color: var(--navy); }
+.timeline-item { display: flex; gap: 14px; align-items: baseline; padding: 12px 14px; border: 1px solid #eee; background: #fafafa; }
+.timeline-item time { flex: 0 0 92px; color: var(--muted); font-size: 9px; }
+.timeline-item div { color: #555; font-size: 11px; line-height: 1.5; }
+.timeline-item strong { color: var(--blue); }
+.timeline-empty { padding: 18px; text-align: center; border: 1px dashed #d5d5d5; border-radius: 8px; color: var(--muted); font-size: 11px; }
+
+html.full-hd-scale .proposal-modal-card, html.full-hd-scale .proposal-detail-card { height: calc(66.666667dvh - 48px); max-height: calc(66.666667dvh - 48px); }
+html.full-hd-scale .proposal-modal-card > header, html.full-hd-scale .proposal-detail-card > header { padding: 14px 22px; }
+html.full-hd-scale .proposal-modal-body, html.full-hd-scale .proposal-detail-body { padding: 14px 22px; }
+html.full-hd-scale #proposal-form .proposal-form-actions, html.full-hd-scale .proposal-detail-actions { padding: 10px 22px; }
+html.full-hd-scale .proposal-modal-card > header h2, html.full-hd-scale .proposal-detail-card > header h2 { font-size: 17px; }
+
+@media (max-width: 900px) {
+  .proposals-hero { display: block; padding: 46px 5% 92px; }
+  .proposals-hero-actions { margin-top: 24px; }
+  .proposals-hero-actions .btn.primary { min-width: 200px; }
+}
+@media (max-width: 750px) {
+  .proposals-dashboard { width: 94%; margin-top: -34px; }
+  .proposals-kpis { grid-template-columns: 1fr 1fr; }
+  .proposals-kpis article { border-right: 0; border-bottom: 1px solid #e3e3e3; }
+  .proposals-panel { padding: 18px; }
+  .proposals-panel-head { align-items: stretch; flex-direction: column; }
+  .proposal-filters { flex-direction: column; }
+  .proposal-filters input, .proposal-filters select { width: 100%; }
+  .proposal-card-body { grid-template-columns: 1fr; gap: 15px; }
+  .proposal-modal { padding: 8px; }
+  .proposal-modal-card, .proposal-detail-card { height: calc(100dvh - 16px); max-height: calc(100dvh - 16px); border-radius: 8px; }
+  .proposal-modal-card > header, .proposal-modal-body, #proposal-form .proposal-form-actions, .proposal-detail-card > header, .proposal-detail-body, .proposal-detail-actions { padding-left: 18px; padding-right: 18px; }
+  .proposal-modal-body, .proposal-detail-body { padding-top: 16px; padding-bottom: 16px; }
+  .proposal-modal-body .proposal-form-grid { grid-template-columns: 1fr; }
+  .proposal-modal-body .proposal-form-grid > label, .proposal-modal-body .proposal-form-grid > .proposal-form-compact { grid-column: auto; }
+  .proposal-form-actions { align-items: stretch; flex-direction: column-reverse; }
+  .proposal-form-actions .btn { justify-content: center; }
+  .proposal-form-actions .proposal-actions-spacer { display: none; }
+  .proposal-form-actions .text-btn { align-self: flex-start; }
+  .proposal-review-card { height: auto; max-height: calc(100dvh - 16px); padding: 18px; }
+  .proposal-detail-body .detail-grid { grid-template-columns: 1fr; }
+  .proposal-detail-body .detail-grid > .wide { grid-column: auto; }
+  .timeline-item { flex-direction: column; gap: 3px; }
+}

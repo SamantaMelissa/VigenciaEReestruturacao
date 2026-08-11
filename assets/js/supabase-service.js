@@ -32,6 +32,11 @@ if(physicalScreenWidth>=1920&&physicalScreenHeight>=1080){
   document.documentElement.classList.add("full-hd-scale");
 }
 
+const ALLOWED_EMAIL_DOMAIN = "sp.senai.br";
+function isAllowedEmail(email) {
+  return String(email).trim().toLowerCase().endsWith("@" + ALLOWED_EMAIL_DOMAIN);
+}
+
 function createAuthScreen() {
   if (document.getElementById("auth-screen")) return;
   document.body.insertAdjacentHTML(
@@ -44,14 +49,14 @@ function createAuthScreen() {
         <h1 id="auth-title">Entre para continuar</h1>
         <p id="auth-description">Use seu e-mail e senha para acessar o sistema.</p>
         <form id="auth-form">
-          <label>E-mail<input id="auth-email" type="email" autocomplete="username" required></label>
+          <label>E-mail<input id="auth-email" type="email" pattern="[^@\s]+@sp\.senai\.br$" title="Use um e-mail institucional @sp.senai.br" autocomplete="username" required></label>
           <label>Senha<input id="auth-password" type="password" autocomplete="current-password" required></label>
           <div class="auth-error" id="auth-error"></div>
           <button type="submit" id="auth-submit">Entrar no sistema</button>
         </form>
         <form id="signup-form" class="signup-form" hidden>
           <label>Nome completo<input id="signup-name" type="text" autocomplete="name" required></label>
-          <label>E-mail<input id="signup-email" type="email" autocomplete="email" required></label>
+          <label>E-mail<input id="signup-email" type="email" pattern="[^@\s]+@sp\.senai\.br$" title="Use um e-mail institucional @sp.senai.br" autocomplete="email" required></label>
           <label>Senha<input id="signup-password" type="password" autocomplete="new-password" minlength="6" required></label>
           <label>Confirmar senha<input id="signup-confirm-password" type="password" autocomplete="new-password" minlength="6" required></label>
           <div class="auth-error" id="signup-error"></div>
@@ -283,10 +288,15 @@ window.requireSupabaseSession = async function () {
   form.onsubmit = async (event) => {
     event.preventDefault();
     const button = document.getElementById("auth-submit");
+    const email = document.getElementById("auth-email").value.trim();
+    if (!isAllowedEmail(email)) {
+      showAuthScreen("Use um e-mail institucional @sp.senai.br.");
+      return;
+    }
     button.disabled = true;
     button.textContent = "Entrando...";
     const { error } = await window.supabaseClient.auth.signInWithPassword({
-      email: document.getElementById("auth-email").value.trim(),
+      email,
       password: document.getElementById("auth-password").value,
     });
     button.disabled = false;
@@ -307,6 +317,10 @@ window.requireSupabaseSession = async function () {
     errorBox.classList.remove("success");
     if(password!==confirmation){
       errorBox.textContent="As senhas informadas são diferentes.";
+      return;
+    }
+    if(!isAllowedEmail(email)){
+      errorBox.textContent="Cadastre-se somente com e-mail institucional @sp.senai.br.";
       return;
     }
     const button=document.getElementById("signup-submit");
@@ -413,6 +427,23 @@ window.remoteDb = {
     const { data, error } = await window.supabaseClient
       .from("evaluation_answers")
       .select("evaluation_id,question_step,evidence");
+    if (error) throw error;
+    return data || [];
+  },
+  async courseProposals() {
+    const { data, error } = await window.supabaseClient
+      .from("course_proposals")
+      .select("*")
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+  async proposalEvents(proposalId) {
+    const { data, error } = await window.supabaseClient
+      .from("course_proposal_events")
+      .select("*")
+      .eq("proposal_id", proposalId)
+      .order("created_at", { ascending: true });
     if (error) throw error;
     return data || [];
   },
