@@ -49,14 +49,14 @@ function createAuthScreen() {
         <h1 id="auth-title">Entre para continuar</h1>
         <p id="auth-description">Use seu e-mail e senha para acessar o sistema.</p>
         <form id="auth-form">
-          <label>E-mail<input id="auth-email" type="email" pattern="[^@\s]+@sp\.senai\.br$" title="Use um e-mail institucional @sp.senai.br" autocomplete="username" required></label>
+          <label>E-mail<input id="auth-email" type="email" pattern="[^@\\s]+@sp\\.senai\\.br$" title="Use um e-mail institucional @sp.senai.br" autocomplete="username" required></label>
           <label>Senha<input id="auth-password" type="password" autocomplete="current-password" required></label>
           <div class="auth-error" id="auth-error"></div>
           <button type="submit" id="auth-submit">Entrar no sistema</button>
         </form>
         <form id="signup-form" class="signup-form" hidden>
           <label>Nome completo<input id="signup-name" type="text" autocomplete="name" required></label>
-          <label>E-mail<input id="signup-email" type="email" pattern="[^@\s]+@sp\.senai\.br$" title="Use um e-mail institucional @sp.senai.br" autocomplete="email" required></label>
+          <label>E-mail<input id="signup-email" type="email" pattern="[^@\\s]+@sp\\.senai\\.br$" title="Use um e-mail institucional @sp.senai.br" autocomplete="email" required></label>
           <label>Senha<input id="signup-password" type="password" autocomplete="new-password" minlength="6" required></label>
           <label>Confirmar senha<input id="signup-confirm-password" type="password" autocomplete="new-password" minlength="6" required></label>
           <div class="auth-error" id="signup-error"></div>
