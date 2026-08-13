@@ -144,20 +144,16 @@ begin
   if tg_op = 'UPDATE' then
     if public.current_user_role() not in ('gestor', 'admin')
        and new.status is distinct from old.status
-       and not (
-         old.status = 'rascunho' and new.status = 'submetida'
-         or old.status = 'ajustes_solicitados' and new.status = 'submetida'
-         or new.status = 'cancelada'
-       ) then
-      raise exception 'Somente gestores podem alterar esse status de proposta.';
+       and new.status <> 'cancelada' then
+      raise exception 'A proposta registrada só pode ser editada ou excluída com motivo.';
     end if;
   end if;
-  if new.status not in ('rascunho', 'cancelada') and (
+  if new.status <> 'cancelada' and (
     new.title is null or char_length(trim(new.title)) < 3
     or coalesce(cardinality(new.mapped_areas), 0) = 0
     or new.justification is null or char_length(trim(new.justification)) < 10
   ) then
-    raise exception 'Preencha nome, área mapeada e justificativa antes de enviar a proposta.';
+    raise exception 'Preencha nome, área mapeada e justificativa antes de registrar a proposta.';
   end if;
   return new;
 end;
@@ -221,27 +217,18 @@ on public.course_proposals for insert to authenticated
 with check (created_by = auth.uid());
 
 drop policy if exists "Users edit editable own proposals" on public.course_proposals;
-create policy "Users edit editable own proposals"
+drop policy if exists "Users cancel own proposals" on public.course_proposals;
+
+create policy "Users edit own active proposals"
 on public.course_proposals for update to authenticated
-using (created_by = auth.uid() and status in ('rascunho', 'ajustes_solicitados'))
-with check (created_by = auth.uid() and status in ('rascunho', 'submetida', 'ajustes_solicitados'));
+using (created_by = auth.uid() and status <> 'cancelada')
+with check (created_by = auth.uid());
 
 drop policy if exists "Managers update proposals" on public.course_proposals;
 create policy "Managers update proposals"
 on public.course_proposals for update to authenticated
 using (public.current_user_role() in ('gestor', 'admin'))
 with check (public.current_user_role() in ('gestor', 'admin'));
-
-drop policy if exists "Users delete own draft proposals" on public.course_proposals;
-create policy "Users delete own draft proposals"
-on public.course_proposals for delete to authenticated
-using (created_by = auth.uid() and status = 'rascunho');
-
-drop policy if exists "Users cancel own proposals" on public.course_proposals;
-create policy "Users cancel own proposals"
-on public.course_proposals for update to authenticated
-using (created_by = auth.uid() and status in ('rascunho', 'submetida', 'em_analise', 'ajustes_solicitados', 'reprovada'))
-with check (created_by = auth.uid() and status = 'cancelada');
 
 drop policy if exists "Managers delete proposals" on public.course_proposals;
 create policy "Managers delete proposals"

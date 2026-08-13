@@ -1,7 +1,8 @@
 -- Verificação do fluxo de Propostas de novos cursos.
 -- Seguro para executar: roda dentro de uma transação e desfaz tudo (ROLLBACK) ao final.
 -- Pré-requisito: execute a versão atual de enable_course_proposals.sql e,
--- para bancos existentes, relax_proposal_workload_requirement.sql.
+-- para bancos existentes, relax_proposal_workload_requirement.sql e
+-- simplify_proposal_flow.sql.
 
 begin;
 
@@ -19,7 +20,7 @@ begin
     'id','title','area','segment','course_type','level','workload_hours',
     'target_audience','justification','demand_evidence','interested_units',
     'strategic_scenarios','mapped_areas','related_technologies','status',
-    'manager_feedback','submitted_at','reviewed_at','reviewed_by',
+    'manager_feedback','cancellation_reason','submitted_at','reviewed_at','reviewed_by',
     'created_by','created_at','updated_at'
   ] loop
     if not exists (
@@ -59,7 +60,7 @@ begin
     raise notice '[3/5] % políticas RLS em course_proposals OK.', v_policy_count;
   end if;
 
-  -- 4) Salvar rascunho sem carga horária
+  -- 4) Registrar proposta diretamente, sem rascunho e sem carga horária
   select id into v_profile from public.profiles order by created_at limit 1;
   if v_profile is null then
     raise exception 'ERRO: nenhum perfil em public.profiles. Crie um usuário antes de testar.';
@@ -75,45 +76,47 @@ begin
     'Justificativa de teste com mais de dez caracteres.',
     'Evidência de demanda coletada em teste.',
     array['SENAI Verificação'], array['Ampliação de portfólio'],
-    array['Desenvolvimento de software'], 'Python', 'rascunho', v_profile
+    array['Desenvolvimento de software'], 'Python', 'submetida', v_profile
   ) returning id into v_proposal;
-  raise notice '[4/5] Rascunho sem carga horária salvo OK.';
+  raise notice '[4/5] Proposta registrada diretamente, sem carga horária, OK.';
 
-  -- 5) Envio para análise sem carga horária
+  -- 5) Edição de campos mantendo o status registrada
   begin
-    update public.course_proposals set status = 'submetida' where id = v_proposal;
-    select count(*) into v_events
-      from public.course_proposal_events where proposal_id = v_proposal;
-    if v_events < 2 then
-      raise notice 'AVISO [5/5]: envio OK, mas histórico com % evento(s) (esperado: criada + status_alterado).', v_events;
+    update public.course_proposals
+       set area = 'Tecnologia da Informação e Comunicação', workload_hours = 120
+     where id = v_proposal;
+    if exists (
+      select 1 from public.course_proposals where id = v_proposal and area <> 'Tecnologia da Informação e Comunicação'
+    ) then
+      raise notice 'AVISO [5/5]: edição de campos não foi persistida.';
     end if;
-    raise notice '[5/5] Envio sem carga horária OK (comportamento novo aplicado).';
+    raise notice '[5/5] Edição de proposta registrada OK.';
   exception
     when others then
-      raise notice 'ATENÇÃO [5/5]: envio sem carga horária recusado pelo banco (%): execute relax_proposal_workload_requirement.sql e refaça a verificação.', SQLERRM;
+      raise notice 'ATENÇÃO [5/5]: edição recusada pelo banco (%): execute simplify_proposal_flow.sql e refaça a verificação.', SQLERRM;
       v_ok := false;
   end;
 
-  -- 6) Cancelamento com motivo
+  -- 6) Exclusão (cancelamento) com motivo
   begin
     update public.course_proposals
-       set status = 'cancelada', cancellation_reason = 'Motivo de teste do cancelamento.'
+       set status = 'cancelada', cancellation_reason = 'Motivo de teste da exclusão.'
      where id = v_proposal;
     select count(*) into v_events
       from public.course_proposal_events where proposal_id = v_proposal;
     if v_events < 3 then
-      raise notice 'AVISO [6/6]: cancelamento OK, mas histórico com % evento(s) (esperado: criada + status_alterado + status_alterado).', v_events;
+      raise notice 'AVISO [6/6]: exclusão OK, mas histórico com % evento(s) (esperado: criada + status_alterado + status_alterado).', v_events;
     end if;
     if not exists (
       select 1 from public.course_proposals where id = v_proposal and status = 'cancelada'
-        and cancellation_reason = 'Motivo de teste do cancelamento.'
+        and cancellation_reason = 'Motivo de teste da exclusão.'
     ) then
-      raise notice 'AVISO [6/6]: motivo do cancelamento não foi persistido corretamente.';
+      raise notice 'AVISO [6/6]: motivo da exclusão não foi persistido corretamente.';
     end if;
-    raise notice '[6/6] Cancelamento com motivo OK.';
+    raise notice '[6/6] Exclusão com motivo OK.';
   exception
     when others then
-      raise notice 'ATENÇÃO [6/6]: cancelamento falhou (%): execute enable_proposal_cancellation.sql e refaça a verificação.', SQLERRM;
+      raise notice 'ATENÇÃO [6/6]: exclusão falhou (%): execute simplify_proposal_flow.sql e refaça a verificação.', SQLERRM;
       v_ok := false;
   end;
 
