@@ -352,28 +352,49 @@ async function openDetail(item){
   detailProposal=item;
   const events=await loadProposalEvents(item.id);
   $("proposal-detail-title").textContent=item.title;
-  $("proposal-detail-subtitle").textContent=`${item.area} · ${item.segment||"Sem segmento"} · ${statusLabels[item.status]} · Atualizada em ${formatDate(item.updated_at)}`;
-  const mappedHtml=item.mapped_areas?.length?`<div><strong>Áreas mapeadas:</strong> ${item.mapped_areas.map(escapeHtml).join(", ")}</div>`:"";
-  const cancelInfo=item.cancellation_reason?`<div class="detail-cancel"><strong>Motivo do cancelamento</strong><p>${escapeHtml(item.cancellation_reason)}</p></div>`:"";
-  const feedbackInfo=item.manager_feedback?`<div class="wide detail-feedback"><strong>Parecer da gestão</strong><p>${escapeHtml(item.manager_feedback)}</p></div>`:"";
+  $("proposal-detail-subtitle").textContent=`${item.area} · ${item.segment||"Sem segmento"} · Atualizada em ${formatDate(item.updated_at)}`;
+  const statusBadge=$("proposal-detail-status");
+  statusBadge.textContent=statusLabels[item.status]||item.status;
+  statusBadge.className=`proposal-status ${item.status}`;
+  const listToTags=value=>value?.length?`<div class="detail-tags">${value.map(entry=>`<i>${escapeHtml(entry)}</i>`).join("")}</div>`:`<p class="detail-empty">Não informado</p>`;
+  const mappedHtml=item.mapped_areas?.length?`<div class="wide"><strong>Áreas mapeadas</strong>${listToTags(item.mapped_areas)}</div>`:"";
+  const cancelInfo=item.cancellation_reason?`<div class="detail-alert cancel"><strong>Motivo do cancelamento</strong><p>${escapeHtml(item.cancellation_reason)}</p></div>`:"";
+  const feedbackInfo=item.manager_feedback?`<div class="detail-alert feedback"><strong>Parecer da gestão</strong><p>${escapeHtml(item.manager_feedback)}</p></div>`:"";
   const timelineHtml=events.length?events.map(e=>`<div class="timeline-item"><time>${formatDate(e.created_at)}</time><div>${formatEventAction(e.action,e.old_status,e.new_status,e.details)}</div></div>`).join(""):`<div class="timeline-empty">Sem histórico de alterações.</div>`;
   $("proposal-detail-body").innerHTML=`
-    <div class="detail-grid">
-      <div><strong>Justificativa:</strong><p>${escapeHtml(item.justification||"")}</p></div>
-      <div><strong>Público-alvo:</strong><p>${escapeHtml(item.target_audience||"Não informado")}</p></div>
-      <div><strong>Evidências de demanda:</strong><p>${escapeHtml(item.demand_evidence||"Não informado")}</p></div>
-      <div><strong>Tipo:</strong><p>${escapeHtml(item.course_type||"Não informado")}</p></div>
-      <div><strong>Nível:</strong><p>${escapeHtml(item.level||"Não informado")}</p></div>
-      <div><strong>Carga horária:</strong><p>${item.workload_hours?`${item.workload_hours} h`:"Não informada"}</p></div>
-      <div><strong>Unidades interessadas:</strong><p>${(item.interested_units||[]).join(", ")||"Não informado"}</p></div>
-      <div><strong>Cenários estratégicos:</strong><p>${(item.strategic_scenarios||[]).join(", ")||"Não informado"}</p></div>
-      <div class="wide"><strong>Tecnologias relacionadas:</strong><p>${escapeHtml(item.related_technologies||"Não informado")}</p></div>
-      ${mappedHtml}
-      ${feedbackInfo}
-      ${cancelInfo}
-    </div>
-    <div class="detail-divider"></div>
-    <div class="timeline"><strong>Histórico:</strong>${timelineHtml}</div>
+    <section class="detail-section">
+      <h3>Identificação</h3>
+      <div class="detail-grid">
+        <div><strong>Tipo de curso</strong><p>${escapeHtml(item.course_type||"Não informado")}</p></div>
+        <div><strong>Nível</strong><p>${escapeHtml(item.level||"Não informado")}</p></div>
+        <div><strong>Carga horária</strong><p>${item.workload_hours?`${item.workload_hours} h`:"Não informada"}</p></div>
+        <div><strong>Área</strong><p>${escapeHtml(item.area||"Não informada")}</p></div>
+        <div><strong>Segmento</strong><p>${escapeHtml(item.segment||"Não informado")}</p></div>
+        <div><strong>Unidades interessadas</strong>${listToTags(item.interested_units)}</div>
+        <div class="wide"><strong>Cenários estratégicos</strong>${listToTags(item.strategic_scenarios)}</div>
+        ${mappedHtml}
+      </div>
+    </section>
+    <section class="detail-section">
+      <h3>Justificativa</h3>
+      <div class="detail-grid">
+        <div class="wide"><strong>Justificativa</strong><p>${escapeHtml(item.justification||"")}</p></div>
+        <div><strong>Público-alvo</strong><p>${escapeHtml(item.target_audience||"Não informado")}</p></div>
+        <div><strong>Evidências de demanda</strong><p>${escapeHtml(item.demand_evidence||"Não informado")}</p></div>
+      </div>
+    </section>
+    <section class="detail-section">
+      <h3>Complementos</h3>
+      <div class="detail-grid">
+        <div class="wide"><strong>Tecnologias relacionadas</strong><p>${escapeHtml(item.related_technologies||"Não informado")}</p></div>
+      </div>
+    </section>
+    ${feedbackInfo}
+    ${cancelInfo}
+    <section class="detail-section">
+      <h3>Histórico</h3>
+      <div class="timeline">${timelineHtml}</div>
+    </section>
   `;
   const actions=[];
   if(editable(item)){
@@ -389,8 +410,8 @@ async function openDetail(item){
 }
 
 function exportProposal(item){
-  const csvHeaders=["title","area","segment","course_type","level","workload_hours","target_audience","justification","demand_evidence","interested_units","strategic_scenarios","mapped_areas","related_technologies","status"];
-  const row=csvHeaders.map(h=>`"${String(item[h]||"").replace(/"/g,'""')}"`).join(",");
+  const csvHeaders=["title","area","segment","course_type","level","workload_hours","target_audience","justification","demand_evidence","interested_units","strategic_scenarios","mapped_areas","related_technologies","status","Situação do Curso"];
+  const row=csvHeaders.map(h=>h==="Situação do Curso"?"CURSO INÉDITO":`"${String(item[h]||"").replace(/"/g,'""')}"`).join(",");
   const csv="\uFEFF"+csvHeaders.join(",")+"\n"+row;
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const url=URL.createObjectURL(blob);

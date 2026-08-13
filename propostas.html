@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=20260813-proposal-cards">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260813-detail-modal">
 </head>
 <body>
   <div class="shell">
@@ -157,7 +157,7 @@
 
   <div class="proposal-modal" id="proposal-detail-modal" aria-hidden="true">
     <section class="proposal-modal-card proposal-detail-card" role="dialog" aria-modal="true" aria-labelledby="proposal-detail-title">
-      <header><div><span class="section-kicker">DETALHES DA PROPOSTA</span><h2 id="proposal-detail-title"></h2><p id="proposal-detail-subtitle"></p></div><button type="button" class="proposal-close" id="proposal-detail-close" aria-label="Fechar">×</button></header>
+      <header><div><span class="section-kicker">DETALHES DA PROPOSTA</span><h2 id="proposal-detail-title"></h2><p id="proposal-detail-subtitle"></p></div><span class="proposal-status" id="proposal-detail-status"></span><button type="button" class="proposal-close" id="proposal-detail-close" aria-label="Fechar">×</button></header>
       <div class="proposal-detail-body" id="proposal-detail-body"></div>
       <footer class="proposal-detail-actions" id="proposal-detail-actions"></footer>
     </section>
@@ -190,6 +190,6 @@
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-service.js?v=20260813-email-pattern"></script>
-  <script src="assets/js/propostas.js?v=20260813-proposal-cards"></script>
+  <script src="assets/js/propostas.js?v=20260813-detail-modal"></script>
 </body>
 </html>
