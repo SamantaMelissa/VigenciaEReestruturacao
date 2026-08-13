@@ -31,17 +31,19 @@ comportamento do navegador pode divergir.
 | `concluidas.html` | Histórico, detalhes e exportação de análises concluídas. |
 | `validacoes.html` | Contato e retorno das unidades escolares. |
 | `gestao.html` | Indicadores e operações gerenciais. |
-| `propostas.html` | Sugestões de novos cursos e fila de análise gerencial. |
+| `propostas.html` | Sugestões de novos cursos: cards compactos, modal de detalhes, análise gerencial e cancelamento com motivo. |
 | `assets/css/styles.css` | Tema, componentes e responsividade compartilhados. |
 | `assets/js/app.js` | Regras e interface do fluxo principal de avaliação. |
 | `assets/js/contacts.js` | Fluxo da Central de Validações. |
 | `assets/js/concluidas.js` | Histórico e exportação. |
 | `assets/js/gestao.js` | Indicadores e gestão. |
-| `assets/js/supabase-service.js` | Sessão, perfil, carregamento e operações compartilhadas no Supabase. |
+| `assets/js/propostas.js` | Fluxo de propostas: validação em etapas, cards, detalhes e cancelamento. |
+| `assets/js/supabase-service.js` | Sessão, perfil, carregamento, operações compartilhadas e validação do e-mail `@sp.senai.br`. |
 | `assets/js/supabase-config.js` | Configuração pública do cliente e modo de demonstração. |
 | `assets/data/courses-data.js` | Catálogo gerado; não editar manualmente. |
 | `scripts/build_course_data.py` | Gera o catálogo e SQLs derivados das planilhas. |
 | `supabase/` | Schema inicial, migrações e funções específicas do banco. |
+| `docs/multifactory-plan.md` | Plano de evolução para multi-fábrica (referência, ainda em planejamento). |
 | `Dados/` | Fontes locais de trabalho; em geral ignoradas pelo Git e não publicadas. |
 
 ## Regras de negócio que não devem ser quebradas
@@ -59,6 +61,16 @@ comportamento do navegador pode divergir.
   esses fluxos.
 - Propostas de cursos são sugestões separadas do catálogo oficial. Uma proposta
   aprovada deve ser incluída na planilha-fonte antes de aparecer em `courses-data.js`.
+- O acesso exige e-mail institucional `@sp.senai.br`. A validação acontece no
+  atributo `pattern` dos inputs (escapado corretamente dentro do template
+  literal) e na função `isAllowedEmail` em `supabase-service.js`. Não altere
+  esse domínio sem alinhar os dois pontos.
+- A carga horária é **opcional** nas propostas; não reimponha a obrigatoriedade
+  no frontend nem no gatilho `protect_course_proposal_transition`.
+- Propostas podem ser canceladas pelo autor ou por gestores, informando motivo.
+  Isso grava `status = cancelada` e `cancellation_reason`. O status enum inclui
+  `cancelada`; a transição para cancelamento é liberada no gatilho e protegida
+  pela política RLS "Users cancel own proposals".
 
 ## Alterando dados de cursos
 
@@ -131,3 +143,4 @@ gerado diretamente se a mudança vier da fonte tabular.
 - Visão geral, operação e publicação: `README.md`.
 - Dados e regeneração: `Dados/README.md` e `scripts/build_course_data.py`.
 - Banco, perfis e migrações: `supabase/README.md`, seguido do SQL específico.
+- Evolução multi-fábrica: `docs/multifactory-plan.md`.

@@ -18,7 +18,10 @@ Sistema web para organizar e registrar decisões sobre vigência, reestruturaç�
 - Central de Validações para contatos com unidades.
 - Fila pública de retornos positivos: qualquer avaliador pode assumir e continuar.
 - Lista de análises pendentes e painel gestor com indicadores consolidados.
-- Propostas de novos cursos, com análise gerencial antes da inclusão no catálogo oficial.
+- Propostas de novos cursos em cards compactos, com detalhes completos em modal,
+  análise gerencial e cancelamento com motivo registrado no banco.
+- Acesso restrito a e-mails institucionais `@sp.senai.br`, validado no login e no
+  cadastro.
 - Autenticação, cadastro de usuários e perfis de acesso pelo Supabase.
 - Layout responsivo, identidade visual em vermelho, preto e branco e favicon próprio.
 
@@ -69,8 +72,11 @@ Na Central de Validações, a pessoa responsável pelo contato apenas registra o
 ├── scripts/
 │   └── build_course_data.py  # Geração dos dados a partir das planilhas
 ├── supabase/                 # Schema, funções, políticas e migrações SQL
+├── docs/                     # Planos e documentos de referência (multi-fábrica)
 └── Dados/                    # Arquivos de apoio locais não publicados
 ```
+
+Plano de evolução multi-fábrica: `docs/multifactory-plan.md`.
 
 ## Configuração do Supabase
 
@@ -117,6 +123,15 @@ Para habilitar propostas de novos cursos, execute uma vez:
 ```text
 supabase/enable_course_proposals.sql
 ```
+
+A migração é **idempotente** e a versão atual já inclui a carga horária opcional
+no envio e o cancelamento de propostas com motivo (`status = cancelada` + coluna
+`cancellation_reason`). Em bancos que já rodaram uma versão anterior e não
+puderem reexecutar o arquivo completo, os ajustes isolados estão em
+`supabase/relax_proposal_workload_requirement.sql` e
+`supabase/enable_proposal_cancellation.sql`. O teste seguro do fluxo (rascunho →
+envio → cancelamento) está em `supabase/verify_course_proposals.sql`. Consulte
+`supabase/README.md` antes de executar qualquer migração.
 
 As propostas aprovadas ficam prontas para inclusão na planilha/catálogo oficial;
 elas não entram automaticamente em `assets/data/courses-data.js`.

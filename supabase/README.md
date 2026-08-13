@@ -18,6 +18,11 @@ Para evitar cadastro público, desabilite a criação aberta de usuários e crie
 usuários em **Authentication > Users**. Todo usuário novo recebe inicialmente o
 perfil `avaliador`.
 
+O acesso é restrito a e-mails institucionais `@sp.senai.br`, validado no
+frontend (atributo `pattern` e função `isAllowedEmail` em
+`supabase-service.js`). Crie os usuários somente com esse domínio e não mude a
+validação sem alinhar os dois pontos.
+
 ## 3. Definir o primeiro administrador
 
 Depois de criar seu próprio usuário, execute no SQL Editor:
