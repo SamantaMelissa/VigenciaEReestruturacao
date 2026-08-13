@@ -12,6 +12,11 @@ exception
 end;
 $$;
 
+commit;
+
+-- A partir daqui o novo valor 'cancelada' já está commitado e pode ser usado.
+begin;
+
 alter table public.course_proposals
   add column if not exists cancellation_reason text;
 

@@ -107,7 +107,15 @@ oficial de cursos.
 
 A migração é **idempotente** e pode ser reexecutada com segurança. Se o banco
 já possuía uma versão anterior dela (por exemplo, sem a coluna `mapped_areas`),
-reexecute a versão atual para aplicar as colunas e regras novas.
+reexecute a versão atual para aplicar as colunas e regras novas. A versão atual
+já inclui a carga horária opcional e o cancelamento com motivo, então não é
+necessário rodar os arquivos das seções 10.1 e 10.2 em bancos que executarem
+esta versão completa.
+
+A migração está dividida em duas transações: a primeira cria/adiciona o status
+`cancelada` do enum e é commitada antes do corpo principal, para evitar o erro
+do PostgreSQL "unsafe use of new value" ao usar o novo valor na mesma
+transação.
 
 Se após executar a migração o sistema continuar reportando colunas inexistentes
 (erro de "schema cache"), atualize o cache do PostgREST no SQL Editor:

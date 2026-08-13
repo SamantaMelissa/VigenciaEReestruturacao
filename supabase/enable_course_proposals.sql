@@ -29,6 +29,11 @@ exception
 end;
 $$;
 
+commit;
+
+-- A partir daqui o novo valor 'cancelada' já está commitado e pode ser usado.
+begin;
+
 create table if not exists public.course_proposals (
   id uuid primary key default gen_random_uuid(),
   title text check (title is null or char_length(trim(title)) between 3 and 180),
