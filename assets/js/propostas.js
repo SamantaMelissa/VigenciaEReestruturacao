@@ -219,8 +219,9 @@ function openForm(item=null){
 }
 
 function formPayload(status){
-  const form=new FormData($("proposal-form"));
-  return {title:form.get("title").trim()||null,area:form.get("area").trim()||null,segment:form.get("segment").trim()||null,course_type:form.get("course_type").trim()||null,level:form.get("level").trim()||null,workload_hours:form.get("workload_hours")?Number(form.get("workload_hours")):null,target_audience:form.get("target_audience").trim()||null,justification:form.get("justification").trim()||null,demand_evidence:form.get("demand_evidence").trim()||null,interested_units:splitList(form.get("interested_units")),strategic_scenarios:splitList(form.get("strategic_scenarios")),mapped_areas:[...form.querySelectorAll('[name="mapped_areas"]:checked')].map(input=>input.value),related_technologies:form.get("related_technologies").trim()||null,status};
+  const form=$("proposal-form");
+  const data=new FormData(form);
+  return {title:data.get("title").trim()||null,area:data.get("area").trim()||null,segment:data.get("segment").trim()||null,course_type:data.get("course_type").trim()||null,level:data.get("level").trim()||null,workload_hours:data.get("workload_hours")?Number(data.get("workload_hours")):null,target_audience:data.get("target_audience").trim()||null,justification:data.get("justification").trim()||null,demand_evidence:data.get("demand_evidence").trim()||null,interested_units:splitList(data.get("interested_units")),strategic_scenarios:splitList(data.get("strategic_scenarios")),mapped_areas:[...form.querySelectorAll('[name="mapped_areas"]:checked')].map(input=>input.value),related_technologies:data.get("related_technologies").trim()||null,status};
 }
 
 async function saveProposal(submit){
