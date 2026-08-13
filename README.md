@@ -18,8 +18,9 @@ Sistema web para organizar e registrar decisões sobre vigência, reestruturaç�
 - Central de Validações para contatos com unidades.
 - Fila pública de retornos positivos: qualquer avaliador pode assumir e continuar.
 - Lista de análises pendentes e painel gestor com indicadores consolidados.
-- Propostas de novos cursos em cards compactos, com detalhes completos em modal,
-  análise gerencial e cancelamento com motivo registrado no banco.
+- Propostas de novos cursos em cards compactos, registradas diretamente no
+  sistema, com detalhes completos em modal, edição e exclusão com motivo
+  registrado no banco.
 - Acesso restrito a e-mails institucionais `@sp.senai.br`, validado no login e no
   cadastro.
 - Autenticação, cadastro de usuários e perfis de acesso pelo Supabase.
@@ -124,17 +125,19 @@ Para habilitar propostas de novos cursos, execute uma vez:
 supabase/enable_course_proposals.sql
 ```
 
-A migração é **idempotente** e a versão atual já inclui a carga horária opcional
-no envio e o cancelamento de propostas com motivo (`status = cancelada` + coluna
-`cancellation_reason`). Em bancos que já rodaram uma versão anterior e não
-puderem reexecutar o arquivo completo, os ajustes isolados estão em
-`supabase/relax_proposal_workload_requirement.sql` e
-`supabase/enable_proposal_cancellation.sql`. O teste seguro do fluxo (rascunho →
-envio → cancelamento) está em `supabase/verify_course_proposals.sql`. Consulte
-`supabase/README.md` antes de executar qualquer migração.
+A migração é **idempotente** e a versão atual já inclui a carga horária opcional,
+a exclusão de propostas com motivo (`status = cancelada` + coluna
+`cancellation_reason`) e o fluxo simplificado, no qual a proposta é registrada
+diretamente no sistema (sem análise gerencial). Em bancos que já rodaram uma
+versão anterior e não puderem reexecutar o arquivo completo, os ajustes isolados
+estão em `supabase/relax_proposal_workload_requirement.sql`,
+`supabase/enable_proposal_cancellation.sql` e
+`supabase/simplify_proposal_flow.sql`. O teste seguro do fluxo (registro →
+edição → exclusão com motivo) está em `supabase/verify_course_proposals.sql`.
+Consulte `supabase/README.md` antes de executar qualquer migração.
 
-As propostas aprovadas ficam prontas para inclusão na planilha/catálogo oficial;
-elas não entram automaticamente em `assets/data/courses-data.js`.
+As propostas registradas ficam prontas para inclusão na planilha/catálogo
+oficial; elas não entram automaticamente em `assets/data/courses-data.js`.
 
 ## Atualização das planilhas
 

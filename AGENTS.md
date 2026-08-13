@@ -37,7 +37,7 @@ comportamento do navegador pode divergir.
 | `assets/js/contacts.js` | Fluxo da Central de Validações. |
 | `assets/js/concluidas.js` | Histórico e exportação. |
 | `assets/js/gestao.js` | Indicadores e gestão. |
-| `assets/js/propostas.js` | Fluxo de propostas: validação em etapas, cards, detalhes e cancelamento. |
+| `assets/js/propostas.js` | Fluxo de propostas: registro direto em etapas, cards, detalhes, edição e exclusão com motivo. |
 | `assets/js/supabase-service.js` | Sessão, perfil, carregamento, operações compartilhadas e validação do e-mail `@sp.senai.br`. |
 | `assets/js/supabase-config.js` | Configuração pública do cliente e modo de demonstração. |
 | `assets/data/courses-data.js` | Catálogo gerado; não editar manualmente. |
@@ -60,17 +60,21 @@ comportamento do navegador pode divergir.
   compartilhados. Preserve RLS, funções RPC, gatilhos e o histórico ao alterar
   esses fluxos.
 - Propostas de cursos são sugestões separadas do catálogo oficial. Uma proposta
-  aprovada deve ser incluída na planilha-fonte antes de aparecer em `courses-data.js`.
+  registrada segue para inclusão na planilha-fonte antes de aparecer em
+  `courses-data.js`.
 - O acesso exige e-mail institucional `@sp.senai.br`. A validação acontece no
   atributo `pattern` dos inputs (escapado corretamente dentro do template
   literal) e na função `isAllowedEmail` em `supabase-service.js`. Não altere
   esse domínio sem alinhar os dois pontos.
 - A carga horária é **opcional** nas propostas; não reimponha a obrigatoriedade
   no frontend nem no gatilho `protect_course_proposal_transition`.
-- Propostas podem ser canceladas pelo autor ou por gestores, informando motivo.
-  Isso grava `status = cancelada` e `cancellation_reason`. O status enum inclui
-  `cancelada`; a transição para cancelamento é liberada no gatilho e protegida
-  pela política RLS "Users cancel own proposals".
+- O fluxo de propostas não tem análise gerencial: ao finalizar, a proposta é
+  registrada diretamente como `submetida` (exibida como "Registrada"). Autor e
+  gestores podem editar propostas ativas e excluí-las com motivo. Exclusão grava
+  `status = cancelada` e `cancellation_reason`; o gatilho
+  `protect_course_proposal_transition` só permite a não gestores trocar o status
+  para `cancelada`, e a política RLS "Users edit own active proposals" substituiu
+  as antigas políticas de edição e cancelamento.
 
 ## Alterando dados de cursos
 

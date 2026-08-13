@@ -113,9 +113,10 @@ oficial de cursos.
 A migração é **idempotente** e pode ser reexecutada com segurança. Se o banco
 já possuía uma versão anterior dela (por exemplo, sem a coluna `mapped_areas`),
 reexecute a versão atual para aplicar as colunas e regras novas. A versão atual
-já inclui a carga horária opcional e o cancelamento com motivo, então não é
-necessário rodar os arquivos das seções 10.1 e 10.2 em bancos que executarem
-esta versão completa.
+já inclui a carga horária opcional, o cancelamento com motivo e o fluxo
+simplificado (proposta registrada diretamente, sem análise gerencial), então não
+é necessário rodar os arquivos das seções 10.1, 10.2 e 10.4 em bancos que
+executarem esta versão completa.
 
 A migração está dividida em duas transações: a primeira cria/adiciona o status
 `cancelada` do enum e é commitada antes do corpo principal, para evitar o erro
@@ -148,8 +149,24 @@ cancelamento pelo autor, registra o motivo no histórico e cria a política RLS
 ### 10.3 Verificar o fluxo de propostas
 
 Execute `verify_course_proposals.sql` no SQL Editor. O script confere a
-estrutura da tabela, as funções de gatilho, as políticas RLS e testa salvar um
-rascunho, enviá-lo para análise e cancelá-lo com motivo — tudo dentro de uma
+estrutura da tabela, as funções de gatilho, as políticas RLS e testa registrar
+uma proposta diretamente, editá-la e excluí-la com motivo — tudo dentro de uma
 transação que é desfeita no final, sem gravar dados. Ele depende de existir ao
 menos um perfil em `public.profiles` e de as migrações acima já estarem
 aplicadas.
+
+### 10.4 Fluxo simplificado (sem análise gerencial)
+
+A partir da versão atual, o fluxo de propostas não possui mais análise
+gerencial: ao finalizar, a proposta é registrada diretamente no sistema com o
+status `submetida` (exibido como "Registrada"). Autor e gestores podem editar
+propostas ativas e excluí-las com motivo (`status = cancelada` +
+`cancellation_reason`). O gatilho `protect_course_proposal_transition` passou a
+permitir a troca de status por não gestores somente para `cancelada`, e a
+política "Users edit own active proposals" substituiu as antigas políticas de
+edição e cancelamento.
+
+Em bancos que já possuem as versões anteriores aplicadas, execute uma vez
+`simplify_proposal_flow.sql` para atualizar o gatilho e as políticas. É
+idempotente e dispensável em bancos que executaram a versão atual completa de
+`enable_course_proposals.sql`.
