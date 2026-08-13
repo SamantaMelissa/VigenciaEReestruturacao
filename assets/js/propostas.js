@@ -1,12 +1,14 @@
 const $=id=>document.getElementById(id);
 const escapeHtml=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
 const normalize=value=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-const statusLabels={rascunho:"Rascunho",submetida:"Aguardando análise",em_analise:"Em análise",ajustes_solicitados:"Ajustes solicitados",aprovada_para_catalogo:"Pronta para catálogo",reprovada:"Não aprovada",arquivada:"Arquivada"};
+const statusLabels={rascunho:"Rascunho",submetida:"Aguardando análise",em_analise:"Em análise",ajustes_solicitados:"Ajustes solicitados",aprovada_para_catalogo:"Pronta para catálogo",reprovada:"Não aprovada",arquivada:"Arquivada",cancelada:"Cancelada"};
 const managerStatuses=["em_analise","ajustes_solicitados","aprovada_para_catalogo","reprovada","arquivada"];
 const catalog=Array.isArray(window.COURSES_DATA)?window.COURSES_DATA:[];
 const MAPPED_AREAS={development:"Desenvolvimento de software",network:"Redes e Infraestrutura",security:"Segurança Cibernética",cloud:"Cloud e DevOps",data:"Dados"};
-let proposals=[],editingProposal=null,reviewingProposal=null,detailProposal=null,proposalStep=1;
+let proposals=[],editingProposal=null,reviewingProposal=null,detailProposal=null,cancellingProposal=null,proposalStep=1;
 const isManager=()=>["gestor","admin"].includes(window.appProfile?.role);
+const cancellableStatuses=["rascunho","submetida","em_analise","ajustes_solicitados","reprovada"];
+const canCancel=item=>cancellableStatuses.includes(item.status)&&(isManager()||ownedByCurrentUser(item));
 const toast=message=>{const element=$("toast");element.textContent=message;element.classList.add("show");setTimeout(()=>element.classList.remove("show"),2800)};
 const splitList=value=>String(value||"").split(",").map(item=>item.trim()).filter(Boolean);
 const formatDate=value=>value?new Date(value).toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}):"Não informado";
@@ -123,8 +125,8 @@ function validateFormForSubmit(){
     valid=false;
   }
   const workload=form.elements.workload_hours;
-  if(!workload.value||Number(workload.value)<1){
-    workload.setCustomValidity("Informe a carga horária para enviar para análise.");
+  if(workload.value&&Number(workload.value)<1){
+    workload.setCustomValidity("Informe uma carga horária válida.");
     valid=false;
   }
   return valid;
@@ -180,14 +182,32 @@ function render(){
   $("proposal-list-kicker").textContent=isManager()?"FILA DA EQUIPE":"ACOMPANHAMENTO PESSOAL";
   $("proposal-list-title").textContent=isManager()?"Propostas para análise":"Minhas propostas";
   $("proposal-list").innerHTML=visible.length?visible.map(item=>{
-    const feedback=item.manager_feedback?`<div class="proposal-feedback"><strong>Parecer da gestão</strong><p>${escapeHtml(item.manager_feedback)}</p></div>`:"";
-    const actions=`${editable(item)?`<button class="proposal-card-action" data-edit="${item.id}">Editar</button>`:""}${isManager()?`<button class="proposal-card-action primary-action" data-review="${item.id}">Analisar</button>`:""}${`<button class="proposal-card-action" data-detail="${item.id}" title="Ver detalhes e histórico">🕘</button>`}`;
-    const mapped=item.mapped_areas?.length?`<div class="proposal-card-mapped"><strong>Áreas mapeadas</strong><span>${item.mapped_areas.map(escapeHtml).join(" · ")}</span></div>`:"";
-    return `<article class="proposal-card"><div class="proposal-card-top"><span class="proposal-status ${item.status}">${statusLabels[item.status]}</span><time>Atualizada em ${formatDate(item.updated_at)}</time></div><div class="proposal-card-body"><div><span class="section-kicker">${escapeHtml(item.area)}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.justification)}</p>${mapped}</div><dl><div><dt>Tipo</dt><dd>${escapeHtml(item.course_type||"Não informado")}</dd></div><div><dt>Nível</dt><dd>${escapeHtml(item.level||"Não informado")}</dd></div><div><dt>Carga horária</dt><dd>${item.workload_hours?`${item.workload_hours} h`:"Não informada"}</dd></div></dl></div>${feedback}<div class="proposal-card-footer"><span>${ownedByCurrentUser(item)?"Sua proposta":"Proposta da equipe"}</span><div>${actions}</div></div></article>`;
+    const cancelled=item.status==="cancelada";
+    const mapped=item.mapped_areas?.length?`<span class="proposal-item-tags">${item.mapped_areas.map(area=>`<span>${escapeHtml(area)}</span>`).join("")}</span>`:"";
+    const cancellation=item.cancellation_reason?`<small class="proposal-item-cancel-reason">Motivo: ${escapeHtml(item.cancellation_reason)}</small>`:"";
+    const primary=cancelled
+      ?`<span class="proposal-status ${item.status}">${statusLabels[item.status]}</span>`
+      :isManager()
+        ?`<button type="button" class="proposal-item-action" data-review="${item.id}">Analisar <span>→</span></button>`
+        :canCancel(item)
+          ?`<button type="button" class="proposal-item-action danger" data-cancel="${item.id}">Cancelar proposta</button>`
+          :`<span class="proposal-status ${item.status}">${statusLabels[item.status]}</span>`;
+    const tools=`<div class="proposal-item-tools">${editable(item)?`<button class="proposal-card-action" data-edit="${item.id}">Editar</button>`:""}<button class="proposal-card-action" data-detail="${item.id}">🕘 Ver detalhes</button>${isManager()&&canCancel(item)?`<button class="proposal-card-action danger" data-cancel="${item.id}">Cancelar proposta</button>`:""}</div>`;
+    return `<article class="proposal-item ${item.status}" data-detail="${item.id}" role="button" tabindex="0" aria-label="Ver detalhes de ${escapeHtml(item.title)}">
+      <div class="proposal-item-top"><span class="proposal-status ${item.status}">${statusLabels[item.status]}</span><time>Atualizada em ${formatDate(item.updated_at)}</time></div>
+      <div class="proposal-item-main"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.area||"Área não informada")}${item.segment?` · ${escapeHtml(item.segment)}`:""}</small>${mapped}${cancellation}</div>
+      ${primary}
+    </article>${tools}`;
   }).join(""):`<div class="proposal-empty"><strong>Nenhuma proposta encontrada</strong><span>${isManager()?"Ainda não há sugestões com estes filtros.":"Crie a primeira sugestão para iniciar a análise."}</span></div>`;
-  document.querySelectorAll("[data-edit]").forEach(button=>button.onclick=()=>openForm(proposals.find(item=>item.id===button.dataset.edit)));
-  document.querySelectorAll("[data-review]").forEach(button=>button.onclick=()=>openReview(proposals.find(item=>item.id===button.dataset.review)));
-  document.querySelectorAll("[data-detail]").forEach(button=>button.onclick=()=>openDetail(proposals.find(item=>item.id===button.dataset.detail)));
+  document.querySelectorAll("[data-detail]").forEach(article=>{
+    if(!article.classList.contains("proposal-item"))return;
+    article.onclick=()=>openDetail(proposals.find(item=>item.id===article.dataset.detail));
+    article.onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();article.onclick()}};
+  });
+  document.querySelectorAll("[data-edit]").forEach(button=>button.onclick=event=>{event.stopPropagation();openForm(proposals.find(item=>item.id===button.dataset.edit))});
+  document.querySelectorAll("[data-review]").forEach(button=>button.onclick=event=>{event.stopPropagation();openReview(proposals.find(item=>item.id===button.dataset.review))});
+  document.querySelectorAll("[data-cancel]").forEach(button=>button.onclick=event=>{event.stopPropagation();openCancel(proposals.find(item=>item.id===button.dataset.cancel))});
+  document.querySelectorAll("[data-detail]").forEach(button=>{if(button.tagName==="BUTTON")button.onclick=event=>{event.stopPropagation();openDetail(proposals.find(item=>item.id===button.dataset.detail))}});
 }
 
 function openModal(id){$(id).classList.add("open");$(id).setAttribute("aria-hidden","false");document.body.classList.add("modal-open")}
@@ -244,6 +264,43 @@ async function saveProposal(submit){
   await loadProposals();
 }
 
+function openCancel(item){
+  cancellingProposal=item;
+  $("proposal-cancel-title").textContent=item.title;
+  $("proposal-cancel-subtitle").textContent=`${item.area||"Área não informada"} · ${statusLabels[item.status]} · criada em ${formatDate(item.created_at)}`;
+  $("proposal-cancel-reason").value="";
+  $("proposal-cancel-feedback").textContent="";
+  openModal("proposal-cancel-modal");
+}
+
+function closeCancel(){
+  if(!cancellingProposal)return;
+  cancellingProposal=null;
+  closeModal("proposal-cancel-modal");
+}
+
+async function saveCancel(){
+  const reason=$("proposal-cancel-reason").value.trim();
+  const feedback=$("proposal-cancel-feedback");
+  if(!reason){feedback.textContent="Informe o motivo do cancelamento.";return;}
+  if(!cancellingProposal)return;
+  const button=$("proposal-cancel-submit");
+  button.disabled=true;
+  button.textContent="Cancelando...";
+  try{
+    const {error}=await window.supabaseClient.from("course_proposals").update({status:"cancelada",cancellation_reason:reason}).eq("id",cancellingProposal.id);
+    if(error)throw error;
+    closeCancel();
+    toast("Proposta cancelada.");
+    await loadProposals();
+  }catch(error){
+    feedback.textContent=error.message||"Não foi possível cancelar a proposta.";
+  }finally{
+    button.disabled=false;
+    button.textContent="Confirmar cancelamento";
+  }
+}
+
 function openReview(item){
   reviewingProposal=item;
   $("proposal-review-title").textContent=item.title;
@@ -285,7 +342,7 @@ function formatEventAction(action,oldStatus,newStatus,details){
   const oldLabel=statusLabels[oldStatus]||oldStatus;
   switch(action){
     case "criada":return`Proposta criada como <strong>${statusLabel}</strong>`;
-    case "status_alterado":return`Status alterado de <strong>${oldLabel}</strong> para <strong>${statusLabel}</strong>${details?.manager_feedback?`: ${escapeHtml(details.manager_feedback)}`:""}`;
+    case "status_alterado":return`Status alterado de <strong>${oldLabel}</strong> para <strong>${statusLabel}</strong>${details?.manager_feedback?`: ${escapeHtml(details.manager_feedback)}`:""}${details?.cancellation_reason?` — ${escapeHtml(details.cancellation_reason)}`:""}`;
     case "parecer_atualizado":return`Parecer atualizado${details?.manager_feedback?`: ${escapeHtml(details.manager_feedback)}`:""}`;
     default:return action;
   }
@@ -297,6 +354,8 @@ async function openDetail(item){
   $("proposal-detail-title").textContent=item.title;
   $("proposal-detail-subtitle").textContent=`${item.area} · ${item.segment||"Sem segmento"} · ${statusLabels[item.status]} · Atualizada em ${formatDate(item.updated_at)}`;
   const mappedHtml=item.mapped_areas?.length?`<div><strong>Áreas mapeadas:</strong> ${item.mapped_areas.map(escapeHtml).join(", ")}</div>`:"";
+  const cancelInfo=item.cancellation_reason?`<div class="detail-cancel"><strong>Motivo do cancelamento</strong><p>${escapeHtml(item.cancellation_reason)}</p></div>`:"";
+  const feedbackInfo=item.manager_feedback?`<div class="wide detail-feedback"><strong>Parecer da gestão</strong><p>${escapeHtml(item.manager_feedback)}</p></div>`:"";
   const timelineHtml=events.length?events.map(e=>`<div class="timeline-item"><time>${formatDate(e.created_at)}</time><div>${formatEventAction(e.action,e.old_status,e.new_status,e.details)}</div></div>`).join(""):`<div class="timeline-empty">Sem histórico de alterações.</div>`;
   $("proposal-detail-body").innerHTML=`
     <div class="detail-grid">
@@ -310,6 +369,8 @@ async function openDetail(item){
       <div><strong>Cenários estratégicos:</strong><p>${(item.strategic_scenarios||[]).join(", ")||"Não informado"}</p></div>
       <div class="wide"><strong>Tecnologias relacionadas:</strong><p>${escapeHtml(item.related_technologies||"Não informado")}</p></div>
       ${mappedHtml}
+      ${feedbackInfo}
+      ${cancelInfo}
     </div>
     <div class="detail-divider"></div>
     <div class="timeline"><strong>Histórico:</strong>${timelineHtml}</div>
@@ -357,9 +418,13 @@ $("new-proposal").onclick=()=>openForm();
 $("proposal-close").onclick=()=>closeModal("proposal-modal");
 $("proposal-review-close").onclick=()=>closeModal("proposal-review-modal");
 $("proposal-detail-close").onclick=()=>closeModal("proposal-detail-modal");
+$("proposal-cancel-close").onclick=closeCancel;
+$("proposal-cancel-back").onclick=closeCancel;
+$("proposal-cancel-form").onsubmit=event=>{event.preventDefault();saveCancel();};
 $("proposal-modal").onclick=event=>{if(event.target===$("proposal-modal"))closeModal("proposal-modal")};
 $("proposal-review-modal").onclick=event=>{if(event.target===$("proposal-review-modal"))closeModal("proposal-review-modal")};
 $("proposal-detail-modal").onclick=event=>{if(event.target===$("proposal-detail-modal"))closeModal("proposal-detail-modal")};
+$("proposal-cancel-modal").onclick=event=>{if(event.target===$("proposal-cancel-modal"))closeCancel()};
 $("proposal-search").oninput=render;
 $("proposal-status-filter").onchange=render;
 $("proposal-form").elements.title.oninput=()=>{applyCatalogClassification();checkDuplicateProposal($("proposal-form").elements.title.value)};
@@ -373,5 +438,5 @@ $("proposal-review-form").onsubmit=event=>{event.preventDefault();saveReview().c
 $("proposal-next").onclick=()=>{if(validateStep(proposalStep))renderProposalStep(proposalStep+1)};
 $("proposal-prev").onclick=()=>renderProposalStep(proposalStep-1);
 document.querySelectorAll(".proposal-wizard-step [required], .proposal-wizard-step [name='workload_hours'], .proposal-wizard-step [name='mapped_areas']").forEach(input=>{input.onblur=()=>validateField(input)});
-document.addEventListener("keydown",event=>{if(event.key==="Escape"){closeModal("proposal-modal");closeModal("proposal-review-modal");closeModal("proposal-detail-modal")}});
+document.addEventListener("keydown",event=>{if(event.key==="Escape"){closeModal("proposal-modal");closeModal("proposal-review-modal");closeModal("proposal-detail-modal");closeCancel()}});
 initialize();

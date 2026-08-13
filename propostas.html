@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=20260811-proposals-polish">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260813-proposal-cards">
 </head>
 <body>
   <div class="shell">
@@ -94,7 +94,7 @@
                 <span class="field-label">Nível</span>
                 <select name="level"><option value="">Selecione o nível</option></select>
               </label>
-                  <label class="proposal-form-compact required-field">
+                  <label class="proposal-form-compact">
                     <span class="field-label">Carga horária</span>
                     <input name="workload_hours" type="number" min="1" max="9999" placeholder="Ex.: 160">
                   </label>
@@ -171,11 +171,25 @@
     </section>
   </div>
 
+  <div class="proposal-modal" id="proposal-cancel-modal" aria-hidden="true">
+    <section class="proposal-modal-card proposal-cancel-card" role="dialog" aria-modal="true" aria-labelledby="proposal-cancel-title">
+      <header><div><span class="section-kicker">CANCELAR PROPOSTA</span><h2 id="proposal-cancel-title">Cancelar proposta</h2><p id="proposal-cancel-subtitle"></p></div><button type="button" class="proposal-close" id="proposal-cancel-close" aria-label="Fechar">×</button></header>
+      <form id="proposal-cancel-form">
+        <label><span class="field-label">Motivo do cancelamento</span><textarea id="proposal-cancel-reason" rows="5" maxlength="500" required placeholder="Descreva por que a proposta está sendo cancelada."></textarea></label>
+        <p class="proposal-form-feedback" id="proposal-cancel-feedback"></p>
+        <div class="proposal-form-actions">
+          <button type="button" class="btn secondary" id="proposal-cancel-back">Voltar</button>
+          <button type="submit" class="btn primary" id="proposal-cancel-submit">Confirmar cancelamento</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
   <div class="toast" id="toast"></div>
   <script src="assets/data/courses-data.js"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-service.js?v=20260813-email-pattern"></script>
-  <script src="assets/js/propostas.js?v=20260813-formpayload-fix"></script>
+  <script src="assets/js/propostas.js?v=20260813-proposal-cards"></script>
 </body>
 </html>

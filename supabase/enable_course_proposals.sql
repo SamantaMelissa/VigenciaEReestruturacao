@@ -21,6 +21,14 @@ exception
 end;
 $$;
 
+do $$
+begin
+  alter type public.course_proposal_status add value if not exists 'cancelada';
+exception
+  when others then null;
+end;
+$$;
+
 create table if not exists public.course_proposals (
   id uuid primary key default gen_random_uuid(),
   title text check (title is null or char_length(trim(title)) between 3 and 180),
@@ -48,6 +56,9 @@ create table if not exists public.course_proposals (
 
 alter table public.course_proposals
   add column if not exists mapped_areas text[] not null default '{}';
+
+alter table public.course_proposals
+  add column if not exists cancellation_reason text;
 
 alter table public.course_proposals
   alter column area drop not null;
@@ -131,17 +142,17 @@ begin
        and not (
          old.status = 'rascunho' and new.status = 'submetida'
          or old.status = 'ajustes_solicitados' and new.status = 'submetida'
+         or new.status = 'cancelada'
        ) then
       raise exception 'Somente gestores podem alterar esse status de proposta.';
     end if;
   end if;
-  if new.status <> 'rascunho' and (
+  if new.status not in ('rascunho', 'cancelada') and (
     new.title is null or char_length(trim(new.title)) < 3
-    or new.workload_hours is null or new.workload_hours < 1
     or coalesce(cardinality(new.mapped_areas), 0) = 0
     or new.justification is null or char_length(trim(new.justification)) < 10
   ) then
-    raise exception 'Preencha nome, carga horária, área mapeada e justificativa antes de enviar a proposta.';
+    raise exception 'Preencha nome, área mapeada e justificativa antes de enviar a proposta.';
   end if;
   return new;
 end;
@@ -174,7 +185,7 @@ begin
       'status_alterado',
       old.status,
       new.status,
-      jsonb_build_object('manager_feedback', coalesce(new.manager_feedback, '')),
+      jsonb_build_object('manager_feedback', coalesce(new.manager_feedback, ''), 'cancellation_reason', coalesce(new.cancellation_reason, '')),
       auth.uid()
     );
   elsif new.manager_feedback is distinct from old.manager_feedback then
@@ -220,6 +231,12 @@ drop policy if exists "Users delete own draft proposals" on public.course_propos
 create policy "Users delete own draft proposals"
 on public.course_proposals for delete to authenticated
 using (created_by = auth.uid() and status = 'rascunho');
+
+drop policy if exists "Users cancel own proposals" on public.course_proposals;
+create policy "Users cancel own proposals"
+on public.course_proposals for update to authenticated
+using (created_by = auth.uid() and status in ('rascunho', 'submetida', 'em_analise', 'ajustes_solicitados', 'reprovada'))
+with check (created_by = auth.uid() and status = 'cancelada');
 
 drop policy if exists "Managers delete proposals" on public.course_proposals;
 create policy "Managers delete proposals"

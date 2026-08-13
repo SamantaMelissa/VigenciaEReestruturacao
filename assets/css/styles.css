@@ -3950,14 +3950,50 @@ html.full-hd-scale .contact-modal-actions .btn {
 .proposal-card-top { padding: 10px 15px; background: #fbfafb; border-bottom: 1px solid #eee; }
 .proposal-card-top time,.proposal-card-footer>span { color: var(--muted); font-size: 10px; }
 .proposal-status { display: inline-flex; padding: 5px 8px; border-radius: 99px; font-size: 9px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
-.proposal-status.rascunho { color: #5e6067; background: #eeeef0; }.proposal-status.submetida { color: #9a5600; background: #fff0d9; }.proposal-status.em_analise { color: #005e91; background: #e2f3fc; }.proposal-status.ajustes_solicitados { color: #8a5a00; background: #fff3ce; }.proposal-status.aprovada_para_catalogo { color: #08733e; background: #e3f7eb; }.proposal-status.reprovada,.proposal-status.arquivada { color: #a32b34; background: #fde9eb; }
+.proposal-status.rascunho { color: #5e6067; background: #eeeef0; }.proposal-status.submetida { color: #9a5600; background: #fff0d9; }.proposal-status.em_analise { color: #005e91; background: #e2f3fc; }.proposal-status.ajustes_solicitados { color: #8a5a00; background: #fff3ce; }.proposal-status.aprovada_para_catalogo { color: #08733e; background: #e3f7eb; }.proposal-status.reprovada,.proposal-status.arquivada,.proposal-status.cancelada { color: #a32b34; background: #fde9eb; }
 .proposal-card-body { display: grid; grid-template-columns: minmax(0,1fr) 310px; gap: 28px; padding: 19px 17px; }
 .proposal-card h3 { margin: 5px 0 8px; color: var(--navy); font: 800 17px/1.2 Montserrat,sans-serif; }.proposal-card p { margin: 0; color: #5f5a5c; font-size: 11px; line-height: 1.6; }
 .proposal-card dl { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin: 0; }.proposal-card dt { color: var(--muted); font-size: 8px; font-weight: 800; text-transform: uppercase; }.proposal-card dd { margin: 4px 0 0; color: var(--navy); font-size: 10px; font-weight: 700; }
 .proposal-card-mapped { margin-top: 12px; }.proposal-card-mapped strong,.proposal-card-mapped span { display: block; }.proposal-card-mapped strong { color: var(--red); font-size: 8px; letter-spacing: .06em; text-transform: uppercase; }.proposal-card-mapped span { margin-top: 3px; color: #564e50; font-size: 10px; font-weight: 700; }
 .proposal-feedback { margin: 0 17px 16px; padding: 12px; border-left: 3px solid var(--red); background: #fff8f8; }.proposal-feedback strong { display: block; margin-bottom: 3px; color: var(--red); font-size: 9px; text-transform: uppercase; }.proposal-feedback p { font-size: 11px; }
 .proposal-card-footer { padding: 11px 17px; border-top: 1px solid #eee; }.proposal-card-footer>div { display: flex; gap: 8px; }.proposal-card-action { border: 0; background: transparent; color: var(--red); cursor: pointer; font: 800 10px Poppins,sans-serif; }.proposal-card-action.primary-action { padding: 7px 10px; color: #fff; background: var(--red); border-radius: 2px; }
+.proposal-card-action.danger { color: #a32b34; }
 .proposal-empty { display: grid; place-items: center; min-height: 190px; color: var(--muted); text-align: center; }.proposal-empty strong { color: var(--navy); }.proposal-empty span { margin-top: 5px; font-size: 11px; }
+
+/* Cards compactos de propostas (padrão visual de pending-item) */
+.proposal-item {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  grid-template-rows: auto auto;
+  gap: 8px 18px;
+  padding: 16px 18px;
+  border: 1px solid #e1e1e1;
+  border-top: 4px solid var(--blue);
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(20,20,20,.05);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.proposal-item:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(20,20,20,.09); }
+.proposal-item.submetida { border-top-color: #d99400; }
+.proposal-item.em_analise { border-top-color: #496ea8; background: #f8faff; }
+.proposal-item.ajustes_solicitados { border-top-color: #8a5a00; }
+.proposal-item.aprovada_para_catalogo { border-top-color: #197653; background: #f7fcfa; }
+.proposal-item.reprovada,.proposal-item.cancelada,.proposal-item.arquivada { border-top-color: #a32b34; background: #fdf9f9; }
+.proposal-item-top { grid-column: 1 / -1; grid-row: 1; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.proposal-item-top time { color: var(--muted); font-size: 9px; }
+.proposal-item-main { grid-column: 1; grid-row: 2; min-width: 0; }
+.proposal-item-main strong { display: block; color: var(--navy); font: 800 15px/1.3 Montserrat,sans-serif; overflow-wrap: anywhere; }
+.proposal-item-main small { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.proposal-item-tags { display: inline-flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.proposal-item-tags span { padding: 4px 8px; border-radius: 99px; background: #f7e7e8; color: var(--blue); font-size: 8px; font-weight: 800; }
+.proposal-item-cancel-reason { display: block; margin-top: 8px; color: #a32b34; font-size: 10px; line-height: 1.5; }
+.proposal-item .proposal-item-action { grid-column: 2; grid-row: 2; align-self: end; }
+.proposal-item-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 10px 14px; border: 0; background: var(--red); color: #fff; font: 800 10px Poppins,sans-serif; cursor: pointer; }
+.proposal-item-action:hover { background: #961e22; }
+.proposal-item-action.danger { background: #fff; color: #a32b34; border: 1px solid #e6b4b8; }
+.proposal-item-action.danger:hover { background: #fde9eb; border-color: #d98a90; }
+.proposal-item-tools { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 4px; }
 
 /* Modal de propostas: estrutura em etapas (wizard), mesmo padrão dos modais principais. */
 .proposal-modal { position: fixed; z-index: 40; inset: 0; display: none; align-items: center; justify-content: center; padding: 22px; background: rgba(17,17,22,.6); }
@@ -4018,6 +4054,20 @@ html.full-hd-scale .contact-modal-actions .btn {
 .proposal-review-card > header { padding: 0 0 19px; border-bottom: 1px solid var(--line); }
 .proposal-review-card form { display: grid; gap: 14px; margin-top: 20px; }
 
+/* Modal de cancelamento */
+.proposal-cancel-card { display: block; width: min(560px,100%); height: auto; max-height: calc(100dvh - 48px); padding: 25px; overflow: auto; }
+.proposal-cancel-card > header { padding: 0 0 19px; border-bottom: 1px solid var(--line); }
+.proposal-cancel-card form { display: grid; gap: 14px; margin-top: 20px; }
+.proposal-cancel-card textarea { width: 100%; min-height: 120px; padding: 10px 12px; border: 1px solid #dcdcdc; border-radius: 7px; background: #fff; color: var(--navy); font: 500 12px Poppins,sans-serif; outline: none; resize: vertical; }
+.proposal-cancel-card textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(193,39,44,.08); }
+.proposal-cancel-card label { display: grid; gap: 6px; color: #4d494b; font-size: 10px; font-weight: 800; }
+.detail-cancel { grid-column: 1 / -1; padding: 12px 14px; border-left: 3px solid #a32b34; background: #fdf4f4; }
+.detail-cancel strong { color: #a32b34; }
+.detail-cancel p { color: #6e2a30 !important; }
+.detail-feedback { padding: 12px 14px; border-left: 3px solid var(--red); background: #fff8f8; }
+.detail-feedback strong { color: var(--red); }
+.detail-feedback p { color: #5f2b30 !important; }
+
 /* Modal de detalhes e histórico */
 .proposal-detail-card { display: grid; grid-template-rows: auto minmax(0,1fr) auto; width: min(940px,100%); height: min(760px,calc(100dvh - 48px)); max-height: calc(100dvh - 48px); padding: 0; overflow: hidden; }
 .proposal-detail-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 22px 27px; }
@@ -4056,6 +4106,11 @@ html.full-hd-scale .proposal-modal-card > header h2, html.full-hd-scale .proposa
   .proposal-filters { flex-direction: column; }
   .proposal-filters input, .proposal-filters select { width: 100%; }
   .proposal-card-body { grid-template-columns: 1fr; gap: 15px; }
+  .proposal-item { grid-template-columns: minmax(0,1fr); gap: 8px; }
+  .proposal-item .proposal-item-action { grid-column: 1; grid-row: auto; align-self: stretch; }
+  .proposal-item-action { width: 100%; }
+  .proposal-item-top { align-items: flex-start; }
+  .proposal-cancel-card { padding: 18px; }
   .proposal-modal { padding: 8px; }
   .proposal-modal-card, .proposal-detail-card { height: calc(100dvh - 16px); max-height: calc(100dvh - 16px); border-radius: 8px; }
   .proposal-modal-card > header, .proposal-modal-body, #proposal-form .proposal-form-actions, .proposal-detail-card > header, .proposal-detail-body, .proposal-detail-actions { padding-left: 18px; padding-right: 18px; }

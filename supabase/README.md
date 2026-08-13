@@ -104,3 +104,39 @@ Para adicionar a página **Propostas de cursos**, execute uma vez
 de alterações e a estrutura de metadados para futuros documentos, como o plano
 de curso. Ela não cria nem publica arquivos no Storage e não altera o catálogo
 oficial de cursos.
+
+A migração é **idempotente** e pode ser reexecutada com segurança. Se o banco
+já possuía uma versão anterior dela (por exemplo, sem a coluna `mapped_areas`),
+reexecute a versão atual para aplicar as colunas e regras novas.
+
+Se após executar a migração o sistema continuar reportando colunas inexistentes
+(erro de "schema cache"), atualize o cache do PostgREST no SQL Editor:
+
+```sql
+notify pgrst, 'reload schema';
+```
+
+### 10.1 Carga horária opcional
+
+Desde a versão atual, a carga horária **não é obrigatória** no envio de uma
+proposta. Em bancos que já rodaram uma versão anterior, execute uma vez
+`relax_proposal_workload_requirement.sql` para atualizar o gatilho de
+transição; caso contrário, o banco ainda recusará o envio sem carga horária.
+
+### 10.2 Cancelamento de propostas com motivo
+
+O autor e os gestores podem cancelar uma proposta informando o motivo. Em
+bancos que já rodaram uma versão anterior de `enable_course_proposals.sql`,
+execute uma vez `enable_proposal_cancellation.sql`. Ela adiciona o status
+`cancelada`, a coluna `cancellation_reason`, permite a transição de
+cancelamento pelo autor, registra o motivo no histórico e cria a política RLS
+"Users cancel own proposals". É idempotente.
+
+### 10.3 Verificar o fluxo de propostas
+
+Execute `verify_course_proposals.sql` no SQL Editor. O script confere a
+estrutura da tabela, as funções de gatilho, as políticas RLS e testa salvar um
+rascunho, enviá-lo para análise e cancelá-lo com motivo — tudo dentro de uma
+transação que é desfeita no final, sem gravar dados. Ele depende de existir ao
+menos um perfil em `public.profiles` e de as migrações acima já estarem
+aplicadas.
