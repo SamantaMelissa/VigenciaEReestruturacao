@@ -207,9 +207,9 @@ alter table public.course_proposal_documents enable row level security;
 alter table public.course_proposal_events enable row level security;
 
 drop policy if exists "Users view own proposals and managers view all" on public.course_proposals;
-create policy "Users view own proposals and managers view all"
+create policy "All authenticated users view proposals"
 on public.course_proposals for select to authenticated
-using (created_by = auth.uid() or public.current_user_role() in ('gestor', 'admin'));
+using (true);
 
 drop policy if exists "Users create proposals" on public.course_proposals;
 create policy "Users create proposals"
@@ -236,15 +236,9 @@ on public.course_proposals for delete to authenticated
 using (public.current_user_role() in ('gestor', 'admin'));
 
 drop policy if exists "Users view proposal documents" on public.course_proposal_documents;
-create policy "Users view proposal documents"
+create policy "All authenticated users view proposal documents"
 on public.course_proposal_documents for select to authenticated
-using (
-  exists (
-    select 1 from public.course_proposals proposal
-    where proposal.id = proposal_id
-      and (proposal.created_by = auth.uid() or public.current_user_role() in ('gestor', 'admin'))
-  )
-);
+using (true);
 
 drop policy if exists "Users add documents to editable proposals" on public.course_proposal_documents;
 create policy "Users add documents to editable proposals"
@@ -266,15 +260,9 @@ using (public.current_user_role() in ('gestor', 'admin'))
 with check (public.current_user_role() in ('gestor', 'admin'));
 
 drop policy if exists "Users view proposal history" on public.course_proposal_events;
-create policy "Users view proposal history"
+create policy "All authenticated users view proposal history"
 on public.course_proposal_events for select to authenticated
-using (
-  exists (
-    select 1 from public.course_proposals proposal
-    where proposal.id = proposal_id
-      and (proposal.created_by = auth.uid() or public.current_user_role() in ('gestor', 'admin'))
-  )
-);
+using (true);
 
 grant select, insert, update, delete on public.course_proposals to authenticated;
 grant select, insert, update, delete on public.course_proposal_documents to authenticated;

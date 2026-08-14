@@ -170,3 +170,14 @@ Em bancos que já possuem as versões anteriores aplicadas, execute uma vez
 `simplify_proposal_flow.sql` para atualizar o gatilho e as políticas. É
 idempotente e dispensável em bancos que executaram a versão atual completa de
 `enable_course_proposals.sql`.
+
+### 10.5 Leitura das propostas para todos
+
+Desde a versão atual, **qualquer usuário autenticado** pode visualizar todas as
+propostas de cursos, seus documentos e seu histórico — a política de `SELECT`
+de `enable_course_proposals.sql` passou de "somente o autor e gestores" para
+"todos os autenticados". Escrita, edição, cancelamento e exclusão continuam
+restritos ao autor e aos perfis `gestor`/`admin`.
+
+Em bancos que já possuem uma versão anterior aplicada, execute uma vez
+`open_proposals_read_access.sql`. É idempotente.
