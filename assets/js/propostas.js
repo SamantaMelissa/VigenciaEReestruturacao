@@ -4,7 +4,7 @@ const normalize=value=>String(value||"").normalize("NFD").replace(/[\u0300-\u036
 const statusLabels={rascunho:"Rascunho",submetida:"Registrada",em_analise:"Em análise",ajustes_solicitados:"Ajustes solicitados",aprovada_para_catalogo:"Pronta para catálogo",reprovada:"Não aprovada",arquivada:"Arquivada",cancelada:"Excluída"};
 const catalog=Array.isArray(window.COURSES_DATA)?window.COURSES_DATA:[];
 const MAPPED_AREAS={development:"Desenvolvimento de software",network:"Redes e Infraestrutura",security:"Segurança Cibernética",cloud:"Cloud e DevOps",data:"Dados"};
-let proposals=[],editingProposal=null,detailProposal=null,cancellingProposal=null,proposalStep=1;
+let proposals=[],editingProposal=null,cancellingProposal=null,proposalStep=1,proposalMode="create";
 const isManager=()=>["gestor","admin"].includes(window.appProfile?.role);
 const canAct=item=>item.status!=="cancelada"&&(isManager()||ownedByCurrentUser(item));
 const canCancel=item=>canAct(item);
@@ -161,10 +161,10 @@ function renderProposalStep(step){
   $("proposal-progress-bar").style.width=`${step/3*100}%`;
   $("proposal-prev").hidden=step===1;
   $("proposal-next").hidden=step===3;
-  $("proposal-submit").hidden=step!==3;
+  $("proposal-submit").hidden=step!==3||proposalMode==="view";
   $("proposal-form-feedback").textContent="";
   syncProposalTitle();
-  $("proposal-modal-body")?.scrollTo({top:0});
+  document.querySelector(".proposal-modal-body")?.scrollTo({top:0});
 }
 
 function syncProposalTitle(){
@@ -188,7 +188,7 @@ function render(){
     const mapped=item.mapped_areas?.length?`<span class="proposal-item-tags">${item.mapped_areas.map(area=>`<span>${escapeHtml(area)}</span>`).join("")}</span>`:"";
     const cancellation=item.cancellation_reason?`<small class="proposal-item-cancel-reason">Motivo: ${escapeHtml(item.cancellation_reason)}</small>`:"";
     const hours=item.workload_hours?`${item.workload_hours} h`:"—";
-    const actions=`<div class="proposal-item-actions">${editable(item)?`<button class="proposal-card-action" data-edit="${item.id}">Editar</button>`:""}<button class="proposal-card-action" data-detail="${item.id}">Ver detalhes</button>${canCancel(item)?`<button class="proposal-card-action danger" data-cancel="${item.id}">Excluir</button>`:""}</div>`;
+    const actions=`<div class="proposal-item-actions">${editable(item)?`<button class="proposal-card-action" data-edit="${item.id}">Editar</button>`:""}<button class="proposal-card-action" data-detail="${item.id}">Ver detalhes</button>${canCancel(item)?`<button class="proposal-card-action danger" data-cancel="${item.id}">Excluir</button>`:""}${isManager()&&item.status!=="cancelada"?`<button class="proposal-card-action" data-export="${item.id}">Exportar</button>`:""}</div>`;
     return `<article class="proposal-item ${item.status}" data-detail="${item.id}" role="button" tabindex="0" aria-label="Ver detalhes de ${escapeHtml(item.title)}">
       <div class="proposal-item-top"><span class="proposal-status ${item.status}">${statusLabels[item.status]}</span><time>Atualizada em ${formatDate(item.updated_at)}</time></div>
       <div class="proposal-item-main"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.area||"Área não informada")}${item.segment?` · ${escapeHtml(item.segment)}`:""}</small></div>
@@ -209,19 +209,20 @@ function render(){
   });
   document.querySelectorAll("[data-edit]").forEach(button=>button.onclick=event=>{event.stopPropagation();openForm(proposals.find(item=>item.id===button.dataset.edit))});
   document.querySelectorAll("[data-cancel]").forEach(button=>button.onclick=event=>{event.stopPropagation();openCancel(proposals.find(item=>item.id===button.dataset.cancel))});
+  document.querySelectorAll("[data-export]").forEach(button=>button.onclick=event=>{event.stopPropagation();exportProposal(proposals.find(item=>item.id===button.dataset.export))});
   document.querySelectorAll("[data-detail]").forEach(button=>{if(button.tagName==="BUTTON")button.onclick=event=>{event.stopPropagation();openDetail(proposals.find(item=>item.id===button.dataset.detail))}});
 }
 
 function openModal(id){$(id).classList.add("open");$(id).setAttribute("aria-hidden","false");document.body.classList.add("modal-open")}
 function closeModal(id){$(id).classList.remove("open");$(id).setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
 
-function openForm(item=null){
+function openForm(item=null,{view=false}={}){
   editingProposal=item;
+  proposalMode=item?(view?"view":"edit"):"create";
   const form=$("proposal-form");
   form.reset();
   $("proposal-form-feedback").textContent="";
   document.querySelector('[name="mapped_areas"]')?.setCustomValidity("");
-  $("proposal-modal-title").textContent=item?"Editar proposta":"Nova proposta de curso";
   $("proposal-catalog-hint").textContent=item?"A classificação pode ser ajustada pelos itens disponíveis no catálogo.":"Ao reconhecer um curso do catálogo, preenchemos a classificação automaticamente.";
   $("proposal-catalog-hint").className="catalog-hint";
   $("proposal-duplicate-warning").hidden=true;
@@ -237,13 +238,72 @@ function openForm(item=null){
     setMappedAreas([]);
   }
   renderProposalStep(1);
+  applyFormMode();
   openModal("proposal-modal");
+}
+
+function applyFormMode(){
+  const view=proposalMode==="view";
+  const form=$("proposal-form");
+  form.querySelectorAll("input,select,textarea").forEach(el=>{
+    el.disabled=view||(proposalMode==="edit"&&el.name==="title");
+  });
+  form.querySelectorAll(".chip-remove").forEach(btn=>{btn.disabled=view});
+  $("proposal-modal-kicker").textContent=view?"DETALHES DA PROPOSTA":proposalMode==="edit"?"EDITAR PROPOSTA":"NOVA OPORTUNIDADE";
+  $("proposal-modal-subtitle").textContent=view?"Dados cadastrados. Clique em Editar para alterar a proposta.":proposalMode==="edit"?"Atualize as informações e finalize para registrar as alterações.":"Preencha o essencial para que a equipe possa avaliar a sugestão.";
+  const status=$("proposal-modal-status");
+  if(editingProposal){
+    status.textContent=statusLabels[editingProposal.status]||editingProposal.status;
+    status.className=`proposal-status ${editingProposal.status}`;
+    status.hidden=false;
+  }else{
+    status.hidden=true;
+  }
+  const action=$("proposal-header-action");
+  if(view&&editable(editingProposal)){
+    action.innerHTML=`<button type="button" class="btn primary">Editar</button>`;
+    action.firstElementChild.onclick=()=>{proposalMode="edit";applyFormMode();toast("Campos liberados para edição.")};
+  }else{
+    action.innerHTML=`<button type="button" class="proposal-close" aria-label="Fechar">×</button>`;
+    action.firstElementChild.onclick=()=>closeModal("proposal-modal");
+  }
+  $("proposal-submit").hidden=view||proposalStep!==3;
+  const viewActions=$("proposal-view-actions");
+  viewActions.innerHTML=view?contextActions(editingProposal):"";
+  if($("view-exclude"))$("view-exclude").onclick=()=>{closeModal("proposal-modal");openCancel(editingProposal)};
+  document.querySelectorAll(".proposal-steps span").forEach(span=>{span.onclick=null;span.style.cursor=""});
+  const body=document.querySelector(".proposal-modal-body");
+  if(body){body.onwheel=null;body.classList.toggle("viewing",view)}
+  if(view){
+    document.querySelectorAll(".proposal-steps span").forEach(span=>{
+      span.onclick=()=>renderProposalStep(Number(span.dataset.proposalStep));
+      span.style.cursor="pointer";
+    });
+    if(body)bindStepWheel(body);
+  }
+}
+
+let lastStepChange=0;
+function bindStepWheel(body){
+  body.onwheel=event=>{
+    if(proposalMode!=="view")return;
+    if(Date.now()-lastStepChange<450)return;
+    event.preventDefault();
+    const step=event.deltaY>0?proposalStep+1:proposalStep-1;
+    if(step>=1&&step<=3){lastStepChange=Date.now();renderProposalStep(step)}
+  };
+}
+
+function contextActions(item){
+  const actions=[];
+  if(canCancel(item))actions.push(`<button type="button" class="btn secondary danger" id="view-exclude">Excluir proposta</button>`);
+  return actions.join("");
 }
 
 function formPayload(status){
   const form=$("proposal-form");
   const data=new FormData(form);
-  return {title:data.get("title").trim()||null,area:data.get("area").trim()||null,segment:data.get("segment").trim()||null,course_type:data.get("course_type").trim()||null,level:data.get("level").trim()||null,workload_hours:data.get("workload_hours")?Number(data.get("workload_hours")):null,target_audience:data.get("target_audience").trim()||null,justification:data.get("justification").trim()||null,demand_evidence:data.get("demand_evidence").trim()||null,interested_units:splitList(data.get("interested_units")),strategic_scenarios:splitList(data.get("strategic_scenarios")),mapped_areas:[...form.querySelectorAll('[name="mapped_areas"]:checked')].map(input=>input.value),related_technologies:data.get("related_technologies").trim()||null,status};
+  return {title:form.elements.title.value.trim()||null,area:data.get("area").trim()||null,segment:data.get("segment").trim()||null,course_type:data.get("course_type").trim()||null,level:data.get("level").trim()||null,workload_hours:data.get("workload_hours")?Number(data.get("workload_hours")):null,target_audience:data.get("target_audience").trim()||null,justification:data.get("justification").trim()||null,demand_evidence:data.get("demand_evidence").trim()||null,interested_units:splitList(data.get("interested_units")),strategic_scenarios:splitList(data.get("strategic_scenarios")),mapped_areas:[...form.querySelectorAll('[name="mapped_areas"]:checked')].map(input=>input.value),related_technologies:data.get("related_technologies").trim()||null,status};
 }
 
 async function saveProposal(){
@@ -299,85 +359,7 @@ async function saveCancel(){
   }
 }
 
-async function loadProposalEvents(proposalId){
-  try{
-    return await remoteDb.proposalEvents(proposalId);
-  }catch(e){
-    console.error(e);
-    return [];
-  }
-}
-
-function formatEventAction(action,oldStatus,newStatus,details){
-  const labels={criada:"Criada",status_alterado:"Status alterado",parecer_atualizado:"Parecer atualizado"};
-  const statusLabel=statusLabels[newStatus]||newStatus;
-  const oldLabel=statusLabels[oldStatus]||oldStatus;
-  switch(action){
-    case "criada":return`Proposta criada como <strong>${statusLabel}</strong>`;
-    case "status_alterado":return`Status alterado de <strong>${oldLabel}</strong> para <strong>${statusLabel}</strong>${details?.manager_feedback?`: ${escapeHtml(details.manager_feedback)}`:""}${details?.cancellation_reason?` — ${escapeHtml(details.cancellation_reason)}`:""}`;
-    case "parecer_atualizado":return`Parecer atualizado${details?.manager_feedback?`: ${escapeHtml(details.manager_feedback)}`:""}`;
-    default:return action;
-  }
-}
-
-async function openDetail(item){
-  detailProposal=item;
-  const events=await loadProposalEvents(item.id);
-  $("proposal-detail-title").textContent=item.title;
-  $("proposal-detail-subtitle").textContent=`${item.area} · ${item.segment||"Sem segmento"} · Atualizada em ${formatDate(item.updated_at)}`;
-  const statusBadge=$("proposal-detail-status");
-  statusBadge.textContent=statusLabels[item.status]||item.status;
-  statusBadge.className=`proposal-status ${item.status}`;
-  const listToTags=value=>value?.length?`<div class="detail-tags">${value.map(entry=>`<i>${escapeHtml(entry)}</i>`).join("")}</div>`:`<p class="detail-empty">Não informado</p>`;
-  const icon=d=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-  const cancelInfo=item.cancellation_reason?`<div class="detail-alert cancel">${icon('<circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/>')}<div><strong>Motivo da exclusão</strong><p>${escapeHtml(item.cancellation_reason)}</p></div></div>`:"";
-  const timelineHtml=events.length?events.map(e=>`<div class="timeline-item"><span class="timeline-dot"></span><time>${formatDate(e.created_at)}</time><div>${formatEventAction(e.action,e.old_status,e.new_status,e.details)}</div></div>`).join(""):`<div class="timeline-empty">Sem histórico de alterações.</div>`;
-  const block=(iconSvg,title,content,open=false)=>`<details class="detail-block"${open?" open":""}><summary><span class="block-icon">${iconSvg}</span><span>${title}</span><span class="block-arrow">›</span></summary><div>${content}</div></details>`;
-  const band=[
-    ["Carga horária",item.workload_hours?`${item.workload_hours} h`:"—"],
-    ["Nível",item.level||"—"],
-    ["Tipo",item.course_type||"—"]
-  ].map(([label,value])=>`<div><span>${label}</span><strong>${escapeHtml(value)}</strong></div>`).join("");
-  const scenarioCards=item.strategic_scenarios?.length?`<div class="wide"><strong>Cenários estratégicos</strong><div class="scenario-list">${item.strategic_scenarios.map((s,i)=>`<div class="scenario-card"><b>${String(i+1).padStart(2,"0")}</b><span>${escapeHtml(s)}</span></div>`).join("")}</div></div>`:"";
-  $("proposal-detail-body").innerHTML=`
-    ${cancelInfo}
-    ${block(icon('<path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/>'),"Identificação",`
-      <div class="detail-band">${band}</div>
-      <div class="detail-grid">
-        <div><strong>Área</strong><p>${escapeHtml(item.area||"Não informada")}</p></div>
-        <div><strong>Segmento</strong><p>${escapeHtml(item.segment||"Não informado")}</p></div>
-        <div><strong>Unidades interessadas</strong>${listToTags(item.interested_units)}</div>
-        <div><strong>Áreas mapeadas</strong>${listToTags(item.mapped_areas)}</div>
-        ${scenarioCards}
-      </div>`,true)}
-    ${block(icon('<path d="M21 12a8 8 0 1 0-3.6 6.7L21 20l-.9-3.2A8 8 0 0 0 21 12z"/><path d="M8 10h8"/><path d="M8 13h6"/>'),"Justificativa",`
-      <div class="detail-grid">
-        <div class="wide"><strong>Justificativa</strong><p>${escapeHtml(item.justification||"")}</p></div>
-        <div><strong>Público-alvo</strong><p>${escapeHtml(item.target_audience||"Não informado")}</p></div>
-        <div><strong>Evidências de demanda</strong><p>${escapeHtml(item.demand_evidence||"Não informado")}</p></div>
-      </div>`,true)}
-    ${block(icon('<path d="M12 5v14"/><path d="M5 12h14"/>'),"Complementos",`
-      <div class="detail-grid">
-        <div class="wide"><strong>Tecnologias relacionadas</strong><p>${escapeHtml(item.related_technologies||"Não informado")}</p></div>
-      </div>`)}
-    ${block(icon('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),"Histórico",`<div class="timeline">${timelineHtml}</div>`)}
-  `;
-  const actions=[];
-  if(editable(item)){
-    actions.push(`<button class="btn secondary" id="detail-edit">Editar</button>`);
-  }
-  if(canCancel(item)){
-    actions.push(`<button class="btn secondary danger" id="detail-exclude">Excluir proposta</button>`);
-  }
-  if(isManager()&&item.status!=="cancelada"){
-    actions.push(`<button class="btn primary" id="detail-export">Exportar para catálogo</button>`);
-  }
-  $("proposal-detail-actions").innerHTML=actions.join(" ");
-  if($("detail-edit"))$("detail-edit").onclick=()=>{closeModal("proposal-detail-modal");openForm(item)};
-  if($("detail-exclude"))$("detail-exclude").onclick=()=>{closeModal("proposal-detail-modal");openCancel(item)};
-  if($("detail-export"))$("detail-export").onclick=()=>exportProposal(item);
-  openModal("proposal-detail-modal");
-}
+function openDetail(item){openForm(item,{view:true})}
 
 function exportProposal(item){
   const csvHeaders=["title","area","segment","course_type","level","workload_hours","target_audience","justification","demand_evidence","interested_units","strategic_scenarios","mapped_areas","related_technologies","status","Situação do Curso"];
@@ -406,13 +388,10 @@ async function initialize(){
 }
 
 $("new-proposal").onclick=()=>openForm();
-$("proposal-close").onclick=()=>closeModal("proposal-modal");
-$("proposal-detail-close").onclick=()=>closeModal("proposal-detail-modal");
 $("proposal-cancel-close").onclick=closeCancel;
 $("proposal-cancel-back").onclick=closeCancel;
 $("proposal-cancel-form").onsubmit=event=>{event.preventDefault();saveCancel();};
 $("proposal-modal").onclick=event=>{if(event.target===$("proposal-modal"))closeModal("proposal-modal")};
-$("proposal-detail-modal").onclick=event=>{if(event.target===$("proposal-detail-modal"))closeModal("proposal-detail-modal")};
 $("proposal-cancel-modal").onclick=event=>{if(event.target===$("proposal-cancel-modal"))closeCancel()};
 $("proposal-search").oninput=render;
 $("proposal-status-filter").onchange=render;
@@ -422,8 +401,8 @@ $("proposal-form").elements.title.onchange=applyCatalogClassification;
 document.querySelectorAll('[name="mapped_areas"]').forEach(input=>{input.onchange=()=>{renderMappedAreaChips([...document.querySelectorAll('[name="mapped_areas"]:checked')].map(i=>i.value));validateField(input)}});
 $("proposal-submit").onclick=()=>saveProposal().catch(error=>{$("proposal-form-feedback").textContent=error.message||"Não foi possível registrar."});
 $("proposal-form").onsubmit=event=>{event.preventDefault();saveProposal().catch(error=>{$("proposal-form-feedback").textContent=error.message||"Não foi possível registrar."})};
-$("proposal-next").onclick=()=>{if(validateStep(proposalStep))renderProposalStep(proposalStep+1)};
+$("proposal-next").onclick=()=>{if(proposalMode==="view"||validateStep(proposalStep))renderProposalStep(proposalStep+1)};
 $("proposal-prev").onclick=()=>renderProposalStep(proposalStep-1);
 document.querySelectorAll(".proposal-wizard-step [required], .proposal-wizard-step [name='workload_hours'], .proposal-wizard-step [name='mapped_areas']").forEach(input=>{input.onblur=()=>validateField(input)});
-document.addEventListener("keydown",event=>{if(event.key==="Escape"){closeModal("proposal-modal");closeModal("proposal-detail-modal");closeCancel()}});
+document.addEventListener("keydown",event=>{if(event.key==="Escape"){closeModal("proposal-modal");closeCancel()}});
 initialize();
