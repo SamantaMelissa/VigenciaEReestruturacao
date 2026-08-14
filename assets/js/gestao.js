@@ -12,8 +12,12 @@ let completedEvaluations=[];
 let analysisScope=[];
 let proposals=[];
 const PROPOSAL_STATUS_LABELS={rascunho:"Rascunho",submetida:"Registrada",em_analise:"Em análise",ajustes_solicitados:"Ajustes solicitados",aprovada_para_catalogo:"Pronta para catálogo",reprovada:"Não aprovada",arquivada:"Arquivada",cancelada:"Excluída"};
-const courseHasEnded=course=>false;
-const endedCourseEvaluation=(course,evaluation,scopeItem)=>({...(evaluation||{}),course_code:String(course.code||scopeItem.course_code),course_name:evaluation?.course_name||scopeItem.course_name||course.name||"",criterion_key:evaluation?.criterion_key||scopeItem.criterion_key||course.criterion||"regular",criterion_label:evaluation?.criterion_label||(scopeItem.criterion_key==="fic"?"Critério FIC":"Critério Regular / Qualificação"),final_result:"",justification:"",state:{...(evaluation?.state||{})}});
+const isCourseExpired=course=>{
+  const match=String(course?.end||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!match)return false;
+  const today=new Date(),endKey=Number(`${match[3]}${match[2]}${match[1]}`),todayKey=Number(`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}`);
+  return endKey<=todayKey;
+};
 
 function resultGroup(result){
   const value=normalize(result);
@@ -147,6 +151,13 @@ function exportJustification(evaluation){
   return [`A análise do curso ${evaluation.course_name} foi conduzida conforme o ${evaluation.criterion_label}.`,statements.length?`${statements.join(". ")}.`:"Não há detalhamento suficiente do percurso na fonte original.",observation?`Como registro adicional, consta: ${observation}.`:"",evaluation.final_result?`Diante das evidências registradas, recomenda-se ${formatDecisionResult(evaluation.final_result).toLocaleLowerCase("pt-BR")}.`:""].filter(Boolean).join(" ").replace(/\s+/g," ").trim();
 }
 
+const isCourseExpired=course=>{
+  const match=String(course?.end||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!match)return false;
+  const today=new Date(),endKey=Number(`${match[3]}${match[2]}${match[1]}`),todayKey=Number(`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}`);
+  return endKey<=todayKey;
+};
+
 async function exportManagerWorkbook(){
   if(!analysisScope.length)return;
   if(!window.ExcelJS){toast("Não foi possível carregar o gerador de Excel. Atualize a página e tente novamente.");return}
@@ -162,8 +173,9 @@ async function exportManagerWorkbook(){
     const header=sheet.getRow(1);header.height=56.25;
     header.eachCell(cell=>{cell.font={name:"Aptos Narrow",size:14,bold:true,color:{argb:"FF000000"}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFFFFF"}};cell.alignment={horizontal:"center",vertical:"middle",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FF808080"}},left:{style:"thin",color:{argb:"FF808080"}},bottom:{style:"thin",color:{argb:"FF808080"}},right:{style:"thin",color:{argb:"FF808080"}}}});
     let rowIndex=0;
+
     scope.forEach((scopeItem)=>{
-      const code=String(scopeItem.course_code),course=(window.COURSES_DATA||[]).find(item=>String(item.code)===code)||{},savedEvaluation=latestCompleted.get(code),evaluation=courseHasEnded(course)?endedCourseEvaluation(course,savedEvaluation,scopeItem):savedEvaluation,state=evaluation?.state||{};
+      const code=String(scopeItem.course_code),course=(window.COURSES_DATA||[]).find(item=>String(item.code)===code)||{},savedEvaluation=latestCompleted.get(code),evaluation=savedEvaluation,state=evaluation?.state||{};
       const criterionKey=evaluation?.criterion_key||scopeItem.criterion_key||course.criterion||"regular",pending=!evaluation;
       rowIndex++;
       const row=sheet.addRow([rowIndex,criterionKey==="fic"?"FIC":"Regular",code,evaluation?.course_name||scopeItem.course_name||course.name||"",course.hours??"",course.level||"",course.type||"",course.strategy||"",pending?"PENDENTE DE ANÁLISE":exportJustification(evaluation),pending?"PENDENTE DE ANÁLISE":String(evaluation.final_result||"NÃO INFORMADO").toLocaleUpperCase("pt-BR"),mappedAreas(evaluation),course.area||state.previousArea||"",course.segment||"",parseBrazilianDate(course.start),state.changeType==="troca_area"?state.targetArea||"":"",pending?"":evaluationObservations(evaluation)]);
@@ -177,15 +189,15 @@ async function exportManagerWorkbook(){
       rowIndex++;
       const row=sheet.addRow([
         rowIndex,
-        "Proposta",
+        "",
         "",
         proposal.title||"",
-        proposal.workload_hours?`${proposal.workload_hours} h`:"",
+        proposal.workload_hours?String(proposal.workload_hours):"",
         proposal.level||"",
         proposal.course_type||"",
         "",
         proposal.justification||"",
-        PROPOSAL_STATUS_LABELS[proposal.status]||proposal.status||"",
+        "Nova Proposta",
         (proposal.mapped_areas||[]).join("; "),
         proposal.area||"",
         proposal.segment||"",
@@ -196,6 +208,35 @@ async function exportManagerWorkbook(){
       row.height=45;row.eachCell({includeEmpty:true},cell=>{cell.font={name:"Aptos Narrow",size:11};cell.alignment={vertical:"top",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFD9D9D9"}},left:{style:"thin",color:{argb:"FFD9D9D9"}},bottom:{style:"thin",color:{argb:"FFD9D9D9"}},right:{style:"thin",color:{argb:"FFD9D9D9"}}}});
       [1,3,5,6,8,14].forEach(column=>row.getCell(column).alignment={horizontal:"center",vertical:"top",wrapText:true});
       row.eachCell(cell=>{cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFE2EFDA"}}});
+    });
+
+    const allCourses=window.COURSES_DATA||[];
+    const expiredCourses=allCourses.filter(course=>isCourseExpired(course));
+    expiredCourses.forEach(course=>{
+      const savedEvaluation=latestCompleted.get(String(course.code));
+      rowIndex++;
+      const row=sheet.addRow([
+        rowIndex,
+        "Fechado por data",
+        course.code,
+        course.name,
+        course.hours??"",
+        course.level||"",
+        course.type||"",
+        course.strategy||"",
+        savedEvaluation?exportJustification(savedEvaluation):"Fechado automaticamente por data de término expirada",
+        "FECHAR A VIGÊNCIA",
+        mappedAreas(savedEvaluation),
+        course.area||"",
+        course.segment||"",
+        parseBrazilianDate(course.start),
+        "",
+        `Data de término: ${course.end}`
+      ]);
+      row.height=90;row.eachCell({includeEmpty:true},cell=>{cell.font={name:"Aptos Narrow",size:11};cell.alignment={vertical:"top",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFD9D9D9"}},left:{style:"thin",color:{argb:"FFD9D9D9"}},bottom:{style:"thin",color:{argb:"FFD9D9D9"}},right:{style:"thin",color:{argb:"FFD9D9D9"}}}});
+      [1,3,5,6,8,14].forEach(column=>row.getCell(column).alignment={horizontal:"center",vertical:"top",wrapText:true});
+      if(row.getCell(14).value instanceof Date)row.getCell(14).numFmt="dd/mm/yyyy";
+      row.eachCell(cell=>{cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFF4CCCC"}}});
     });
 
     sheet.autoFilter="B1:P1";sheet.pageSetup={orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
