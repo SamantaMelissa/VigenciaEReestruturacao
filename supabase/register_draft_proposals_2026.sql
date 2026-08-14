@@ -64,9 +64,9 @@ update public.course_proposals p
 set status = 'submetida',
     justification = case
       when p.justification = 'SOLICITAÇÃO CENTRO UNIVERSITÁRIO'
-        then 'Solicitação do Centro Universitário para a oferta desta formação; a carga horária e o detalhamento curricular serão definidos após a validação da pesquisa pública.'
+        then 'Solicitação do Centro Universitário para a oferta desta formação.'
       when p.justification = 'MAGNO APAGOU'
-        then 'Formação solicitada para atender à demanda do setor de TIC; o detalhamento curricular e a carga horária serão definidos após a validação da pesquisa pública.'
+        then 'Formação solicitada para atender à demanda do setor de TIC; o detalhamento curricular e a carga horária serão definidos posteriormente.'
       else p.justification
     end
 from targets t
