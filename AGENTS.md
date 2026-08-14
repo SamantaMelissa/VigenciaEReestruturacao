@@ -69,12 +69,14 @@ comportamento do navegador pode divergir.
 - A carga horária é **opcional** nas propostas; não reimponha a obrigatoriedade
   no frontend nem no gatilho `protect_course_proposal_transition`.
 - O fluxo de propostas não tem análise gerencial: ao finalizar, a proposta é
-  registrada diretamente como `submetida` (exibida como "Registrada"). Autor e
-  gestores podem editar propostas ativas e excluí-las com motivo. Exclusão grava
-  `status = cancelada` e `cancellation_reason`; o gatilho
-  `protect_course_proposal_transition` só permite a não gestores trocar o status
-  para `cancelada`, e a política RLS "Users edit own active proposals" substituiu
-  as antigas políticas de edição e cancelamento.
+  registrada diretamente como `submetida` (exibida como "Registrada"). Todos os
+  usuários autenticados podem visualizar e editar qualquer proposta. A exclusão
+  (status `cancelada`) fica restrita a gestor/admin e ao autor da proposta;
+  `cancellation_reason` registra o motivo. O gatilho
+  `protect_course_proposal_transition` restringe a mudança de status por não
+  gestores (exceto cancelamento com motivo), e as políticas RLS "All
+  authenticated users view proposals", "All authenticated users edit proposals"
+  e "Creators and managers delete proposals" regem leitura, edição e exclusão.
 
 ## Alterando dados de cursos
 

@@ -6,8 +6,8 @@ const catalog=Array.isArray(window.COURSES_DATA)?window.COURSES_DATA:[];
 const MAPPED_AREAS={development:"Desenvolvimento de software",network:"Redes e Infraestrutura",security:"Segurança Cibernética",cloud:"Cloud e DevOps",data:"Dados"};
 let proposals=[],editingProposal=null,cancellingProposal=null,proposalStep=1,proposalMode="create";
 const isManager=()=>["gestor","admin"].includes(window.appProfile?.role);
-const canAct=item=>item.status!=="cancelada"&&(isManager()||ownedByCurrentUser(item));
-const canCancel=item=>canAct(item);
+const canAct=item=>item.status!=="cancelada";
+const canCancel=item=>item.status!=="cancelada"&&(isManager()||ownedByCurrentUser(item));
 const toast=message=>{const element=$("toast");element.textContent=message;element.classList.add("show");setTimeout(()=>element.classList.remove("show"),2800)};
 const splitList=value=>String(value||"").split(",").map(item=>item.trim()).filter(Boolean);
 const formatDate=value=>value?new Date(value).toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}):"Não informado";
@@ -178,12 +178,12 @@ function populateStatusOptions(){
 
 function render(){
   const mine=proposals.filter(ownedByCurrentUser),query=normalize($("proposal-search").value),status=$("proposal-status-filter").value;
-  const visible=(isManager()?proposals:mine).filter(item=>!status||item.status===status).filter(item=>normalize(`${item.title} ${item.area} ${item.segment}`).includes(query));
+  const visible=proposals.filter(item=>!status||item.status===status).filter(item=>normalize(`${item.title} ${item.area} ${item.segment}`).includes(query));
   $("proposal-mine-count").textContent=mine.length;
   $("proposal-registered-count").textContent=proposals.filter(item=>item.status==="submetida").length;
   $("proposal-cancelled-count").textContent=proposals.filter(item=>item.status==="cancelada").length;
-  $("proposal-list-kicker").textContent=isManager()?"REGISTRO DA EQUIPE":"ACOMPANHAMENTO PESSOAL";
-  $("proposal-list-title").textContent=isManager()?"Todas as propostas":"Minhas propostas";
+  $("proposal-list-kicker").textContent="REGISTRO DA EQUIPE";
+  $("proposal-list-title").textContent="Todas as propostas";
   $("proposal-list").innerHTML=visible.length?visible.map(item=>{
     const mapped=item.mapped_areas?.length?`<span class="proposal-item-tags">${item.mapped_areas.map(area=>`<span>${escapeHtml(area)}</span>`).join("")}</span>`:"";
     const cancellation=item.cancellation_reason?`<small class="proposal-item-cancel-reason">Motivo: ${escapeHtml(item.cancellation_reason)}</small>`:"";
@@ -201,7 +201,7 @@ function render(){
       ${cancellation}
       ${actions}
     </article>`;
-  }).join(""):`<div class="proposal-empty"><strong>Nenhuma proposta encontrada</strong><span>${isManager()?"Ainda não há propostas com estes filtros.":"Crie a primeira proposta para o catálogo."}</span></div>`;
+  }).join(""):`<div class="proposal-empty"><strong>Nenhuma proposta encontrada</strong><span>Ainda não há propostas com estes filtros.</span></div>`;
   document.querySelectorAll("[data-detail]").forEach(article=>{
     if(!article.classList.contains("proposal-item"))return;
     article.onclick=()=>openDetail(proposals.find(item=>item.id===article.dataset.detail));

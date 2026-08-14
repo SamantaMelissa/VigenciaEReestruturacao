@@ -218,22 +218,17 @@ with check (created_by = auth.uid());
 
 drop policy if exists "Users edit editable own proposals" on public.course_proposals;
 drop policy if exists "Users cancel own proposals" on public.course_proposals;
-
-create policy "Users edit own active proposals"
-on public.course_proposals for update to authenticated
-using (created_by = auth.uid() and status <> 'cancelada')
-with check (created_by = auth.uid());
-
+drop policy if exists "Users edit own active proposals" on public.course_proposals;
 drop policy if exists "Managers update proposals" on public.course_proposals;
-create policy "Managers update proposals"
+
+create policy "All authenticated users edit proposals"
 on public.course_proposals for update to authenticated
-using (public.current_user_role() in ('gestor', 'admin'))
-with check (public.current_user_role() in ('gestor', 'admin'));
+using (true) with check (true);
 
 drop policy if exists "Managers delete proposals" on public.course_proposals;
-create policy "Managers delete proposals"
+create policy "Creators and managers delete proposals"
 on public.course_proposals for delete to authenticated
-using (public.current_user_role() in ('gestor', 'admin'));
+using (created_by = auth.uid() or public.current_user_role() in ('gestor', 'admin'));
 
 drop policy if exists "Users view proposal documents" on public.course_proposal_documents;
 create policy "All authenticated users view proposal documents"
