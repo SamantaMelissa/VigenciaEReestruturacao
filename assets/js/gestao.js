@@ -10,6 +10,8 @@ const SCENARIO_NAMES={1:"Desenvolvimento de software",2:"Redes e Infraestrutura"
 const scenarioNamesFromText=text=>[...new Set((normalize(text).match(/cenarios?\s+mapeados?\s*\(([^)]+)\)/i)?.[1]?.match(/[1-5]/g)||[]).map(number=>SCENARIO_NAMES[number]))];
 let completedEvaluations=[];
 let analysisScope=[];
+let proposals=[];
+const PROPOSAL_STATUS_LABELS={rascunho:"Rascunho",submetida:"Registrada",em_analise:"Em análise",ajustes_solicitados:"Ajustes solicitados",aprovada_para_catalogo:"Pronta para catálogo",reprovada:"Não aprovada",arquivada:"Arquivada",cancelada:"Excluída"};
 const courseHasEnded=course=>{const match=String(course?.end||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!match)return false;const today=new Date(),endKey=Number(`${match[3]}${match[2]}${match[1]}`),todayKey=Number(`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}`);return endKey<=todayKey};
 const endedCourseEvaluation=(course,evaluation,scopeItem)=>({...(evaluation||{}),course_code:String(course.code||scopeItem.course_code),course_name:evaluation?.course_name||scopeItem.course_name||course.name||"",criterion_key:evaluation?.criterion_key||scopeItem.criterion_key||course.criterion||"regular",criterion_label:evaluation?.criterion_label||(scopeItem.criterion_key==="fic"?"Critério FIC":"Critério Regular / Qualificação"),final_result:"FECHAR A VIGÊNCIA",justification:`Fechar a vigência porque a data de término registrada para o curso é ${course.end}.`,state:{...(evaluation?.state||{}),changeType:"fechar_vigencia_data_termino",closureReason:"data_termino",closureReasonLabel:`Data de término: ${course.end}`}});
 
@@ -169,6 +171,35 @@ async function exportManagerWorkbook(){
       if(pending)row.eachCell(cell=>{cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFF2CC"}}});
     });
     sheet.autoFilter="B1:P1";sheet.pageSetup={orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
+
+    const proposalSheet=workbook.addWorksheet("Propostas",{views:[{state:"frozen",ySplit:1}]});
+    const proposalWidths=[46,16,26,24,18,18,14,30,34,34,30,60,40,30,14];
+    proposalSheet.columns=["Curso","Situação","Área","Segmento","Tipo de Curso","Nível","Carga horária","Público-alvo","Áreas mapeadas","Cenários estratégicos","Unidades interessadas","Justificativa","Evidência de demanda","Tecnologias relacionadas","Atualizado em"].map((header,index)=>({header,key:`column${index+1}`,width:proposalWidths[index]}));
+    const proposalHeader=proposalSheet.getRow(1);proposalHeader.height=30;
+    proposalHeader.eachCell(cell=>{cell.font={name:"Aptos Narrow",size:12,bold:true,color:{argb:"FFFFFFFF"}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFC00000"}};cell.alignment={horizontal:"center",vertical:"middle",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FF808080"}},left:{style:"thin",color:{argb:"FF808080"}},bottom:{style:"thin",color:{argb:"FF808080"}},right:{style:"thin",color:{argb:"FF808080"}}}});
+    proposals.forEach(proposal=>{
+      const row=proposalSheet.addRow([
+        proposal.title||"",
+        PROPOSAL_STATUS_LABELS[proposal.status]||proposal.status||"",
+        proposal.area||"",
+        proposal.segment||"",
+        proposal.course_type||"",
+        proposal.level||"",
+        proposal.workload_hours?`${proposal.workload_hours} h`:"",
+        proposal.target_audience||"",
+        (proposal.mapped_areas||[]).join("; "),
+        (proposal.strategic_scenarios||[]).join("; "),
+        (proposal.interested_units||[]).join("; "),
+        proposal.justification||"",
+        proposal.demand_evidence||"",
+        proposal.related_technologies||"",
+        proposal.updated_at?new Date(proposal.updated_at).toLocaleDateString("pt-BR"):""
+      ]);
+      row.height=45;row.eachCell({includeEmpty:true},cell=>{cell.font={name:"Aptos Narrow",size:11};cell.alignment={vertical:"top",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFD9D9D9"}},left:{style:"thin",color:{argb:"FFD9D9D9"}},bottom:{style:"thin",color:{argb:"FFD9D9D9"}},right:{style:"thin",color:{argb:"FFD9D9D9"}}}});
+      [2,7,15].forEach(column=>row.getCell(column).alignment={horizontal:"center",vertical:"top",wrapText:true});
+    });
+    proposalSheet.autoFilter="A1:O1";proposalSheet.pageSetup={orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
+
     const buffer=await workbook.xlsx.writeBuffer(),url=URL.createObjectURL(new Blob([buffer],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
     const link=document.createElement("a");link.href=url;link.download=`Definição da Situação dos Cursos - ${new Date().toISOString().slice(0,10)}.xlsx`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(error){console.error(error);toast("Não foi possível gerar o Excel.")}
@@ -179,14 +210,16 @@ async function initializeManager(){
   try{
     await requireSupabaseSession();
     if(isPreviewMode){location.replace("index.html");return}
-    const [completed,claims,validations,scope]=await Promise.all([
+    const [completed,claims,validations,scope,proposalRows]=await Promise.all([
       remoteDb.evaluations(["concluida"]),
       remoteDb.evaluationClaims(),
       remoteDb.validations(),
-      remoteDb.analysisScope()
+      remoteDb.analysisScope(),
+      remoteDb.courseProposals()
     ]);
     completedEvaluations=completed;
     analysisScope=scope;
+    proposals=proposalRows;
     const completedCodes=new Set(completed.map(item=>String(item.course_code)));
     const areaChanges=completed.filter(item=>item.state?.changeType==="troca_area"||normalize(item.final_result).includes("troca de area"));
     const openValidations=validations.filter(item=>item.status!=="concluido");
