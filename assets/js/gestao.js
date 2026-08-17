@@ -151,13 +151,6 @@ function exportJustification(evaluation){
   return [`A análise do curso ${evaluation.course_name} foi conduzida conforme o ${evaluation.criterion_label}.`,statements.length?`${statements.join(". ")}.`:"Não há detalhamento suficiente do percurso na fonte original.",observation?`Como registro adicional, consta: ${observation}.`:"",evaluation.final_result?`Diante das evidências registradas, recomenda-se ${formatDecisionResult(evaluation.final_result).toLocaleLowerCase("pt-BR")}.`:""].filter(Boolean).join(" ").replace(/\s+/g," ").trim();
 }
 
-const isCourseExpired=course=>{
-  const match=String(course?.end||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if(!match)return false;
-  const today=new Date(),endKey=Number(`${match[3]}${match[2]}${match[1]}`),todayKey=Number(`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}`);
-  return endKey<=todayKey;
-};
-
 async function exportManagerWorkbook(){
   if(!analysisScope.length)return;
   if(!window.ExcelJS){toast("Não foi possível carregar o gerador de Excel. Atualize a página e tente novamente.");return}
@@ -270,6 +263,7 @@ async function initializeManager(){
     $("kpi-open").textContent=openValidations.length.toLocaleString("pt-BR");
     $("kpi-validations").textContent=validations.filter(item=>item.status==="concluido").length.toLocaleString("pt-BR");
     $("kpi-area-changes").textContent=areaChanges.length.toLocaleString("pt-BR");
+    $("kpi-proposals").textContent=proposals.length.toLocaleString("pt-BR");
     $("manager-updated").textContent=new Date().toLocaleString("pt-BR");
 
     const results=Object.entries(completed.reduce((groups,item)=>{
